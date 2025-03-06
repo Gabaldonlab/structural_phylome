@@ -445,7 +445,9 @@ ggsave("draft/figures/Fig2.pdf", fig2, width = 8, height = 7, device = cairo_pdf
 
 ```{r read_trees}
 models_draft <- setdiff(models, c("QT", "FTPY", "AF", "LLM"))
-df_trees <- read_delim("test/flashforward/out/unrooted_trees.txt",
+df_trees <- read_delim(paste0(params$outdir, 'phylogeny/',
+                              params_dataset$phylo_dataset,  "/trees/", 
+                              params_dataset$seed, "_unrooted_trees.txt"),
                        show_col_types = FALSE,
                        col_names = c("gene", "target", "alphabet", "model", "tree")) %>% 
   mutate(model=factor(model, levels=models)) %>% 
@@ -455,17 +457,21 @@ df_trees <- read_delim("test/flashforward/out/unrooted_trees.txt",
 # 722*8*4=23104 trees
 
 # ML trees with selected model and LL
-df_ml <- read_delim("draft/mltrees.txt", 
-                    delim = "\t", 
-                    show_col_types=FALSE) %>% 
-  # mutate(fn=gsub("_mltrees.txt", "", basename(fn))) %>% 
-  # separate(fn, c("gene", "target", "alphabet", "model"), sep = "_") %>% 
-  mutate(model=factor(gsub("3DI", "3Di", 
+df_ml <- read_delim(paste0(params$outdir, 'phylogeny/',
+                              params_dataset$phylo_dataset,  "/trees/", 
+                              params_dataset$seed, "_mltrees.txt"),
+                    delim = "\t",
+                    show_col_types=FALSE) %>%
+  # mutate(fn=gsub("_mltrees.txt", "", basename(fn))) %>%
+  # separate(fn, c("gene", "target", "alphabet", "model"), sep = "_") %>%
+  mutate(model=factor(gsub("3DI", "3Di",
                            gsub("GTR20", "GTR",
-                                gsub("\\+.*", "", Model))), levels=models), 
+                                gsub("\\+.*", "", Model))), levels=models),
          rate=sub("\\+", "", gsub("GTR20|3DI|LG", "", Model)))
 
-disco_fls <- list.files("test/flashforward/reco/", pattern = "^disco", full.names = T)
+disco_fls <- list.files(paste0(params$outdir, 'phylogeny/',
+                              params_dataset$phylo_dataset,  "/reco/disco"), 
+                        pattern = "*output*", full.names = T)
 
 # Read all trees
 ts <- read.tree(text = df_trees$tree)
@@ -489,7 +495,9 @@ var_df <- sapply(ts, function(x) {
 
 # Reconciliation ranger+TCS scores
 # glue("results/phylogeny/", params_dataset$phylo_dataset, "/reco/", params_dataset$seed, "_notung.tsv")
-reco <- read_delim("test/flashforward/out/notung.txt", 
+reco <- read_delim(paste0(params$outdir, 'phylogeny/',
+                              params_dataset$phylo_dataset,  "/reco/", 
+                              params_dataset$seed, "_notung.tsv"), 
                    show_col_types = FALSE, 
                    col_names = c("gene", "target", "alphabet", "model", "dups", "losses")) %>% 
   left_join(n_tips) %>% 
@@ -525,7 +533,7 @@ plot_DL <- reco %>%
 
 plot_rf <- disco_rf %>% 
   mutate(model=factor(model, levels=models)) %>% 
-  filter(nsps>length(sptree$tip.label)/2) %>%
+  filter(nsps>length(sptree$tip.label)/2, model %in% models_draft) %>%
   # separate(bn, c("seed", "targets", "alphabet", "model")) %>% 
   left_join(df_model) %>% 
   ggplot(aes(weave_factors(model, data), rf, 
@@ -630,14 +638,16 @@ union_trees <- df_trees %>%
   filter(target=="union", model %in% models_draft)
 df_dist <- distance_to_seed(union_trees) 
 
-plot_dist <- df_dist %>% 
+df_dist_summ <- df_dist %>% 
   left_join(select(df_filt, query, target, singleton), 
             by = c("query", "target")) %>%
   filter(query!=target, !is.na(singleton)) %>% 
   group_by(query) %>% 
   mutate(max_dist = max(nn_dist)) %>% 
   group_by(query, singleton, model) %>%
-  summarise(median_dist=median(nn_dist/max_dist), n=n()) %>% 
+  summarise(median_dist=median(nn_dist/max_dist), n=n())
+
+plot_dist <- df_dist_summ %>% 
   ggplot(aes(median_dist, model,  fill=singleton)) + 
   # ggdist::stat_halfeye(alpha=.8, point_colour = NA, .width = 0, height=.6, 
   #                      position = position_nudge(y=.15)) +
@@ -664,6 +674,11 @@ fig_s2 <- ((plot_bs / rf_plot) +
   theme(plot.tag = element_text(size = 10, face = "bold", family = "Helvetica"))
 
 ggsave("draft/figures/Fig_S2.pdf", fig_s2, width = 10, height = 6)
+
+df_dist_summ %>% 
+  group_by(singleton, model) %>% 
+  summarise(median(median_dist)) %>% 
+  filter(model=="LG")
 ```
 
 # ```{r FigS2}

@@ -22,9 +22,9 @@ The only dependency not automatically managed in the pipeline is gsutil: follow 
 To run the pipeline the user will need to prepare these files:
 
 1. `metadata`: a file specifying the taxon sampling. All the protein structures and sequences from the species included in the file will be downloaded. **IMPORTANT:** the species must be present in UniProt, you can check [here](https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/README) if your species are present.
-2. `seed_file`: A file with either one column with protein IDs of the seed species or two tab separated columns `orthogroup\tprotein_id`.
-3. `species_tree`: The corresponding species tree in newick format
-4. `configfile`: A `yaml` file with different parameters
+2. `seed_file`: a file with either one column with protein IDs of the seed species or two tab separated columns `orthogroup\tprotein_id`.
+3. `species_tree`: species tree in newick format
+4. `configfile`: a `yaml` file with different parameters
 
 The pipeline can be run in two distinct modes: *Phylome* and *OG*. For the first approach, the user only needs to input a list of protein IDs of the seed species (indicated by `seed: UniProt_id` in the `configfile`). Each protein will be aligned to the structures and sequences of the different taxas indicated in the `metadata` file. Alternatively, if the user already has defined orthogroups the homology search step is skipped and the different trees will be computed on these sets. There are two example `yaml` files for both modes in `config/`.
 

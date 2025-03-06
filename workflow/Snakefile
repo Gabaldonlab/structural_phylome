@@ -16,6 +16,7 @@ if dataset_config_file is not None:
 # include: 'rules/prepare.smk'
 # include: 'rules/structure.smk'
 # include: 'rules/sequence.smk'
+include: 'rules/initialize.smk'
 include: 'rules/checks.smk'
 include: 'rules/common.smk'
 include: 'rules/analysis.smk'
@@ -39,7 +40,7 @@ plots = ["discordance"] # "runtime", "astral_pro", "trees", "discordance", "exam
 rule all:
     input:
         expand(outdir+"/plots/{seed}_{plot}.pdf", seed=config['seed'], plot=plots),
-        expand(outdir+"/plots/{seed}_foldmason", seed=config['seed']),
+        # expand(outdir+"/plots/{seed}_foldmason", seed=config['seed']),
         expand(outdir+"/trees/{seed}_{mode}_trees.txt", seed=config['seed'], mode=config["modes"])
         # expand(outdir+"/reco/{seed}_notung.tsv", seed=config['seed']),
         # expand(outdir+"/trees/{seed}_mltrees.txt", seed=config['seed'])

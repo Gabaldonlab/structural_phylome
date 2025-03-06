@@ -26,16 +26,18 @@ df_ml <- read_delim(snakemake@input[["mltrees"]], delim = "\t",
 
 # Disco similarity to sptree
 disco_fls <- c(snakemake@input[["disco"]])
+# disco_fls <- list.files("results/phylogeny/hsap_1kseeds/reco/disco/",
+#                         pattern = "*output*", full.names = T)
 
 # Astral-pro results
 clades <- read_delim(snakemake@input[["table"]], show_col_types = FALSE)
 
 apro_files <- snakemake@input[["apro_trees"]]
+# apro_files <- list.files("results/phylogeny/hsap_1kseeds/reco/apro//",
+#                         pattern = "*support*", full.names = T)
 apro_trees <- read.tree(text = sapply(apro_files, readLines))
 names(apro_trees) <- sapply(str_split(basename(apro_files), "_"), 
                             function(x) paste0(x[2], "_", x[4]))
-
-
 
 # 1. Compute astral-pro quartet
 nodes_clades <- fortify(sptree) %>% 
@@ -67,14 +69,7 @@ plot_apro <- nodes_df %>%
   theme(legend.position = "none")
 
 
-disco_rf <- NULL
-for (file in disco_fls){
-  a <- read.tree(file)
-  rf <- TreeDist::RobinsonFoulds(sptree, a, normalize = T)
-  ntips <- sapply(a, function(x) length(x$tip.label))
-  disco_rf <- bind_rows(disco_rf, 
-                        tibble(ntips=ntips, rf=rf, bn=rep(basename(file), length(rf))))
-}
+disco_rf <- get_disco_rf(disco_fls, sptree)
 
 ts <- read.tree(text = df_trees$tree)
 names(ts) <- paste(df_trees$gene, df_trees$target, df_trees$alphabet, df_trees$model, sep = "_")
@@ -85,8 +80,9 @@ n_tips <- sapply(ts, function(x) length(x$tip.label)) %>%
 
 # Reconciliation notung
 reco <- read_delim(snakemake@input[["reco"]], 
-                   show_col_types = FALSE, col_names = c("gene", "dups", "losses")) %>% 
-  separate(gene, c("gene", "target", "alphabet", "model"), sep = "_") %>% 
+                   show_col_types = FALSE, 
+                   col_names = c("gene", "target", "alphabet", "model", "dups", "losses")) %>% 
+  # separate(gene, c("gene", "target", "alphabet", "model"), sep = "_") %>% 
   # left_join(var_df) %>% 
   left_join(n_tips) %>%
   # left_join(n_sps) %>% 

@@ -8,6 +8,6 @@ root: 'ecoli'
 
 # this is the number of seed genes to run the pipeline
 test_seeds: 'data/seeds/example_seeds.txt'
-# modes: ['common', 'blast']
+modes: ['common']
 
 n_examples: 3

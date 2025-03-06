@@ -160,7 +160,7 @@ get_disco_rf <- function(disco_fls, sptree) {
   }
   disco_rf <- disco_rf %>% 
     mutate(bn = gsub("disco_", "", gsub(".nwk", "", bn))) %>% 
-    separate(bn, into = c("target", "alphabet", "model"), sep = "_")
+    separate(bn, into = c("seed", "target", "alphabet", "model"), sep = "_")
   return(disco_rf)  
 }
 
