@@ -5,7 +5,6 @@ input_dict = input_table.set_index('uniprot').T.to_dict()
 codes = list(input_table['uniprot'])
 
 
-
 rule plot_blens:
     input:
         blast=homodir+"/{seed}_blast.tsv",
@@ -124,16 +123,16 @@ rule plot_trees:
         table=config['data_dir']+'meta/'+config["homology_dataset"]+'_uniprot_genomes.tsv',
         taxidmap=homodir+"/db/taxidmap",
         disco=expand(outdir+"/reco/disco/{seed}_{mode}_{comb}_disco_output.nwk", 
-                     seed=config['seed'], mode=config["modes"], comb=config["combinations"]),
+                     seed=config['seed'], mode=config["modes"], comb=all_combinations),
         apro_trees=expand(outdir+"/reco/apro/{seed}_{mode}_{comb}_apro_support.nwk", 
-                     seed=config['seed'], mode=config["modes"], comb=config["combinations"])
+                     seed=config['seed'], mode=config["modes"], comb=all_combinations)
     output:
         # apro=outdir+"/plots/{seed}_astral_pro.pdf",
         # model=outdir+"/plots/{seed}_trees.pdf",
         reco=outdir+"/plots/{seed}_discordance.pdf"
     conda: "../envs/sp_R.yaml"
     script: "../scripts/compare_sptree.R"
-
+# modify also the script
 
 # rule plot_trees:
 #     input: 
