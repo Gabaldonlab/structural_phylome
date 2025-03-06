@@ -145,6 +145,35 @@ rm -f ${{tree_prefix}}.model.gz ${{tree_prefix}}.splits.nex ${{tree_prefix}}.con
 '''
 # --boot-trees
 
+rule iqtree_cxx:
+    input: 
+        aln=outdir+"/seeds/{seed}/{i}/{i}_common_{alphabet}.alg.clean",
+        iqtree=outdir+"/seeds/{seed}/{i}/{i}_common_{alphabet}_LG.iqtree"
+    output: 
+        tree=outdir+"/seeds/{seed}/{i}/{i}_common_{alphabet}_C{cxx}.nwk",
+        iqtree=outdir+"/seeds/{seed}/{i}/{i}_common_{alphabet}_C{cxx}.iqtree"
+    params: 
+        ufboot=config['UF_boot']
+    log: outdir+"/log/iqtree/{seed}_{i}_common_{alphabet}_C{cxx}.log"
+    benchmark: outdir+"/benchmarks/iqtree/{seed}_{i}_common_{alphabet}_C{cxx}.txt"
+    threads: 4
+    conda: "../envs/sp_tree.yaml"
+    shell: '''
+tree_prefix=$(echo {output.tree} | sed 's/.nwk//')
+model=$(grep Best {input.iqtree} | cut -f2 -d':')
+
+iqtree2 -s {input.aln} --prefix $tree_prefix -B {params.ufboot} -T {threads} --quiet \
+--mem 4G --cmin 4 --cmax 10 -m $model+C{wildcards.cxx} -redo
+
+mv ${{tree_prefix}}.treefile {output.tree}
+mv ${{tree_prefix}}.log {log}
+rm -f ${{tree_prefix}}.model.gz ${{tree_prefix}}.splits.nex ${{tree_prefix}}.contree ${{tree_prefix}}.ckp.gz
+'''
+# kassianoula iqtree2 -s $alignment -m MFP -mset LG+C20,Q.pfam+C20,WAG+C20 
+# -mrate G4,R4 -mfreq "" -T 40 -B 1000 -alrt 1000 -pre $prefix -wbt -wsl -wsr --safe --bnni --boot-trees
+# carlos does this -bb 1000 -mset LG -madd LG+C10,LG+C20,LG+C10+R+F,LG+C20+R+F
+# Romain says this LG+C10+G
+
 rule get_part: 
     input: 
         LG=outdir+"/seeds/{seed}/{i}/{i}_{mode}_aa_LG.iqtree",
@@ -285,6 +314,19 @@ fastme -q -p -T {threads} -b {params} -i {input} -o {output} > {log}
 rm {input}_fastme*
 '''
 
+# useless bs!
+rule fastme_g:
+    input: rules.convert_phylip.output
+    output: outdir+"/seeds/{seed}/{i}/{i}_{mode}_aa_FMG.nwk"
+    params: config["distboot"]
+    log: outdir+"/log/fastme/{seed}_{i}_{mode}_aa_FMG.log"
+    benchmark: outdir+"/benchmarks/fastme/{seed}_{i}_{mode}_aa_FMG.txt"
+    threads: 4
+    conda: "../envs/sp_tree.yaml"
+    shell:'''
+fastme -g -q -p -T {threads} -b {params} -i {input} -o {output} > {log}
+rm {input}_fastme*
+'''
 
 # rule quicktree:
 #     input: outdir+"/seeds/{seed}/{i}/{i}_{mode}_{alphabet}.alg.clean"
