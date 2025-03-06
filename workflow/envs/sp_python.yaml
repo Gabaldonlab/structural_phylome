@@ -1,0 +1,14 @@
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - biopython
+  - cmake
+  - fastme
+  - numpy
+  - pandas
+  - python==3.10
+  - scipy
+  - statsmodels
+  - toytree[version='<3']
+  - tqdm

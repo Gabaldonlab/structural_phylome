@@ -1,0 +1,4 @@
+snakemake -j 112 --configfile config/Hsap_draft.yaml --until union_trees
+snakemake -j 112 --configfile config/Hsap_draft.yaml --until fs_trees
+snakemake -j 112 --configfile config/Hsap_draft.yaml --until common_trees
+snakemake -j 112 --configfile config/Hsap_draft.yaml --until blast_trees

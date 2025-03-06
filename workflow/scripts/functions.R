@@ -10,22 +10,38 @@ fs_columns <- c("query","target","pident","length","mismatch","gapopen",
                 "qstart","qend","sstart","send","evalue","bitscore",
                 "lddt","alntmscore","rmsd","prob","qcov","tcov")
 
-models <- c("LG", "3Di", "GTR", "QT", "FT", "FTPY")
+models <- c("LG", "FM", "QT", "part", "FT",
+            "FTPY", "3Di", "GTR", "AF", "LLM")
 
-palettes_model <- c("#BF360C", "#75C323", "#40A79D", "#FFA000", "#D4E157","#646B00")
+palettes_model <- c("#BF360C", "#FFA000", "#FFA000", "purple", "#D4E157","#646B00",
+                    "#75C323", "#40A79D", "#33ceff", "#3396ff")
 names(palettes_model) <- models
+
+
+df_model <- tibble(model = factor(models), 
+       data = c(rep("AA", 3), "Mixed", rep("3Di", 6)),
+       algorithm = c("ML", rep("Distance", 2), "ML", 
+                     rep("Distance", 2), rep("ML", 4))) %>% 
+  filter(!model %in% c("QT", "FTPY") )
+df_model$data <- factor(df_model$data, levels = c("AA", "Mixed", "3Di"))
+df_model$algorithm <- factor(df_model$algorithm, levels = c("ML", "Distance"))
+
 palettes_model_d <- colorspace::darken(palettes_model, amount = 0.6)
 names(palettes_model_d) <- models
 # "#FF0000" "#00A08A" "#F2AD00" "#F98400" "#5BBCD6"
 
 palettes_method <- c("#00A08A", "#d63a3a", "#ffaa0e", "#6f63bb")
 names(palettes_method) <- c("common", "blast", "fs", "union")
-
+palettes_method_d <- colorspace::darken(palettes_method, amount = 0.3)
+names(palettes_method_d) <- c("common", "blast", "fs", "union")
 palette_singleton <- c("#00A08A", "#d63a3a", "#ffaa0e", "#6f63bb")
 names(palette_singleton) <- c("common", "only_blast", "only_fs", "union")
 
 palette_singleton_p <- c("#00A08A", "#d63a3a", "#ffaa0e", "#6f63bb")
 names(palette_singleton_p) <- c("Common", "only Blast", "only Foldseek", "Union")
+
+palette_singleton_s <- c("#00A08A", "#d63a3a", "#ffaa0e", "#6f63bb")
+names(palette_singleton_s) <- c("Common", "Only Bp", "Only Fs", "Union")
 
 palette_brh <- c("#00A08A","#d63a3a", "#ffaa0e")
 names(palette_brh) <- c("common","blast_brh", "fs_brh")
@@ -131,4 +147,93 @@ plot_dom <- function(tree, seed, gff, prot, singleton_df, title="") {
   
   return (list(a, b))
 }
+
+
+get_disco_rf <- function(disco_fls, sptree) {
+  disco_rf <- NULL
+  for (file in disco_fls){
+    a <- read.tree(file)
+    rf <- TreeDist::RobinsonFoulds(sptree, a, normalize = T)
+    nsps <- sapply(a, function(x) length(unique(x$tip.label)))
+    disco_rf <- bind_rows(disco_rf, 
+                          tibble(nsps=nsps, rf=rf, bn=rep(basename(file), length(rf))))
+  }
+  disco_rf <- disco_rf %>% 
+    mutate(bn = gsub("disco_", "", gsub(".nwk", "", bn))) %>% 
+    separate(bn, into = c("seed", "target", "alphabet", "model"), sep = "_")
+  return(disco_rf)  
+}
+
+
+get_bs_df <- function(trees) {
+  df <- sapply(trees, function(x) as.numeric(x$node.label)) %>% 
+    enframe(value = "support") %>% 
+    unnest(cols = c(support)) %>% 
+    separate(name, c("gene", "target", "alphabet", "model"), sep = "_") %>% 
+    filter(!is.na(support))
+  return(df)
+}
+
+# tree_stats <- function(trees, taxidmap) {
+#   taxid_lookup <- setNames(taxidmap$Tax_ID, taxidmap$target)
+#   df <- lapply(trees, function(x) {
+#     c(n_tips = length(x$tip.label),
+#       n_taxa = length(unique(taxid_lookup[x$tip.label])),
+#       root_var = var(adephylo::distRoot(phytools::midpoint_root(x))) )
+#   }) %>% 
+#     do.call(rbind, .) %>%  # Combine results into a data frame
+#     as.data.frame() %>% 
+#     rownames_to_column("name") %>% 
+#     separate(name, c("gene", "target", "alphabet", "model"), sep = "_") 
+#   return(df)
+# }
+
+
+
+get_apro_stats <- function(apro_trees) {
+  trees_df <- fortify(apro_trees) %>% 
+    group_by(.id) %>% 
+    mutate(ordered = rank(y)) %>% 
+    separate(.id, c("targets", "model")) %>% 
+    filter(!isTip, label!="") %>% 
+    mutate(label = gsub("\\[|\\]|\\'", "", str_replace_all(label, "[a-z]{1,2}[0-9]=", ""))) %>% 
+    separate(label, c("pp1", "pp2", "pp3", "f1", "f2", "f3", "q1", "q2", "q3"), 
+             ";", convert = TRUE) %>% 
+    mutate(freq=f1+f2+f3, 
+           model=factor(model, levels=models))
+  return(trees_df)
+}
+
+get_rf_df <- function(df) {
+  rf_df <- filter(df, target=="common") %>% 
+    select(-alphabet) %>% 
+    inner_join(x=., y = ., by = c("gene", "target")) %>%
+    filter(!is.na(tree.x), !is.na(tree.y)) %>%
+    rowwise() %>%
+    mutate(RF =  TreeDist::RobinsonFoulds(read.tree(text = tree.x),  
+                                          read.tree(text=tree.y),
+                                          normalize = T)) %>%
+    select(-tree.x, -tree.y)
+  return(rf_df)
+}
+
+
+distance_to_seed <- function(df_trees) {
+  ts <- read.tree(text = df_trees$tree)
+  names(ts) <- paste0(df_trees$gene, "_", df_trees$model)
+
+  process_row <- function(idx, ts) {
+    nm <- str_split(names(ts)[idx], pattern = "_", simplify = T)
+    seed <- nm[1]
+    if (seed %in% ts[[idx]]$tip.label) {
+      nn <- as.matrix(adephylo::distTips(ts[[idx]], method = "nNodes"))[seed, ]
+      enframe(nn, name = "target", value = "nn_dist") %>%
+        mutate(query = seed, model = nm[2])  
+    }
+  }
+  df <- sapply(seq_along(ts), function(x) process_row(x, ts), simplify = FALSE) %>% 
+    bind_rows()
+  return(df)
+}
+
 

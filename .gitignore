@@ -1,7 +1,7 @@
 results/
 .snakemake/
 test/
-launch_struct.sh
+launch_*.sh
 *Rproj*
 *Rhistory
 data/fastas/
@@ -11,8 +11,11 @@ data/meta/*gz
 notebooks/prokaryote_sampling_cache/
 .Rproj.user
 logs/
-draft/
+draft/foldtree_benchmark/zenodo/
+draft/foldtree_benchmark/fold_tree_t/
 resources/fastas/
 resources/structures/
 workflow/notebooks/*cache/
 workflow/notebooks/*files/
+workflow/notebooks/prokaryote_sampling*
+workflow/notebooks/*html

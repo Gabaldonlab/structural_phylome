@@ -8,18 +8,18 @@ taxidmap <- read_delim(snakemake@input[["taxidmap"]],
                        col_names = c("target", "Tax_ID"), show_col_types=F)
 
 
-tax <- read_delim(snakemake@input[["groups"]], show_col_types=F)
-# read input table
-lvls_tax <- rev(c(unique(tax$Clade), "archaea", "bacteria"))
-
-table_columns <- c('Proteome_ID', 'Tax_ID', 'count1', 'count2', 'count3', 
-                   'genome', 'source', 'species', 'mnemo')
+# tax <- read_delim(snakemake@input[["groups"]], show_col_types=F)
+# # read input table
+# lvls_tax <- rev(c(unique(tax$Clade), "archaea", "bacteria"))
+# 
+# table_columns <- c('Proteome_ID', 'Tax_ID', 'count1', 'count2', 'count3', 
+#                    'genome', 'source', 'species', 'mnemo')
 
 table <- read_delim(snakemake@input[["table"]], show_col_types=F, 
-                    delim = "\t", col_names = table_columns) %>% 
-  left_join(tax, by = "Tax_ID") %>% 
-  mutate(Clade = ifelse(is.na(Clade), mnemo, Clade),
-         Clade = factor(Clade, levels = lvls_tax))
+                    delim = "\t") 
+  # left_join(tax, by = "Tax_ID") %>% 
+  # mutate(Clade = ifelse(is.na(Clade), mnemo, Clade),
+  #        Clade = factor(Clade, levels = lvls_tax))
 
 
 # seeds <- readLines("results/test/ids/UP000005640_common.ids")

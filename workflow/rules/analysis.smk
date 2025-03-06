@@ -1,58 +1,22 @@
-# outdir=config['outdir']+config['dataset']
-# type of diff matrixed for foldtree
-modes = ['blast', 'fs', 'common', 'union']
-combinations=["3Di_3Di", "aa_QT", "aa_LG", "3Di_GTR", "3Di_FT", "3Di_FTPY"]
+input_table = pd.read_csv(config['taxids'], sep='\t')
+input_table.columns = ['uniprot', 'taxid', 'mnemo']
+input_dict = input_table.set_index('uniprot').T.to_dict()
 
-rule plot_evalues:
-    input:
-        table=config['input_table_file'],
-        groups=config['taxons_file'],
-        taxidmap=rules.make_blastdb.output.mapid,
-        blast=rules.blast.output,
-        # blast_brh=rules.blast_brh.output,
-        self_blast=outdir+"/homology/allvall/{seed}_{seed}_blast.tsv",
-        fs=rules.foldseek.output,
-        # fs_brh=rules.foldseek_brh.output,
-        self_fs=outdir+"/homology/allvall/{seed}_{seed}_fs.tsv"
-    params: 
-        eval_both=config['eval_both'],
-        max_seqs=config['max_seqs']
-    output: 
-        eda=outdir+"/plots/{seed}_homology.pdf",
-        saturation=outdir+"/plots/{seed}_saturation.pdf"
-    script: "../scripts/compare_sampling.R"
-#     shell:'''
-# Rscript workflow/scripts/compare_sampling.R -i {input.table} -m {input.groups} -t {input.taxidmap} \
-# -b {input.blast} -f {input.fs} --bb {input.blast_brh} --fb {input.fs_brh} \
-# --sb {input.self_blast} --sf {input.self_fs} -o {output.eda} --o2 {output.saturation} -e {params.eval_both} -s {params.max_seqs}
-# '''
+codes = list(input_table['uniprot'])
 
-rule plot_evalues_trees:
-    input:
-        table=config['input_table_file'],
-        groups=config['taxons_file'],
-        taxidmap=rules.make_blastdb.output.mapid,
-        blast=rules.blast.output,
-        fs=rules.foldseek.output
-        # ids=outdir+"/ids/{seed}_common.ids"
-    params: 
-        eval_both=config['eval_both'],
-        coverage=config['coverage'],
-        max_seqs=config['max_seqs']
-    output: outdir+"/plots/{seed}_singletons.pdf"
-    script: "../scripts/compare_sampling_trees.R"
 
 
 rule plot_blens:
     input:
-        blast=rules.blast.output,
-        fs=rules.foldseek.output,
-        trees=rules.get_unrooted_trees.output.trees
+        blast=homodir+"/{seed}_blast.tsv",
+        fs=homodir+"/{seed}_fs.tsv",
+        trees=rules.get_unrooted_trees.output
     params: 
         eval_both=config['eval_both'],
         coverage=config['coverage'],
         max_seqs=config['max_seqs']
     output: outdir+"/plots/{seed}_distance.pdf"
+    conda: "../envs/sp_R.yaml"
     script: "../scripts/analyze_bl.R"
 
 
@@ -68,8 +32,8 @@ def seeds_examples(wildcards):
     checkpoint_output = checkpoints.get_examples_ids.get(**wildcards).output[0]
     with open(checkpoint_output) as all_genes:
         seed_genes = [gn.strip() for gn in all_genes]
-    outfiles = expand(outdir+"/seeds/{seed}/{i}/{i}_union_3Di.html", 
-                      seed=wildcards.seed, i=seed_genes)
+    outfiles = expand(outdir+"/seeds/{seed}/{i}/{i}_{mode}_3Di.html", 
+                      seed=wildcards.seed, i=seed_genes, mode=config["foldmason_set"])
     return outfiles
 
 rule get_examples_report:
@@ -79,118 +43,152 @@ rule get_examples_report:
 
 rule plot_examples:
     input: 
-        trees=rules.get_unrooted_trees.output.trees,
+        trees=rules.get_unrooted_trees.output,
         ids=rules.get_examples_ids.output,
-        taxidmap=rules.make_blastdb.output.mapid,
-        reco=rules.merge_Ranger.output.DTLs,
-        sptree=config['species_tree_labels'],
-        meta=config['taxons_file'],
-        gff=expand(config['gff_dir']+'{code}.gff', code=codes)
-    params: seed=config["seed"]
+        taxidmap=homodir+"/db/taxidmap",
+        reco=rules.merge_Notung.output,
+        sptree=config['species_tree'],
+        table=config['data_dir']+'meta/'+config["homology_dataset"]+'_uniprot_genomes.tsv',
+        gff=expand(config['data_dir']+'gffs/{code}.gff', code=codes)
+    params: 
+        seed=config["seed"],
+        struct_dir=config["data_dir"]+"structures/"
     output: outdir+"/plots/{seed}_examples.pdf"
+    conda: "../envs/sp_R.yaml"
     script: "../scripts/plot_example.R"
 
 ### Comparisons
 
 rule get_lineage:
-    input: config['input_table_file']
+    input: config['data_dir']+'meta/'+config["homology_dataset"]+'_uniprot_genomes.tsv'
     output: temp(outdir+"/reco/{seed}_lineage.tsv")
+    conda: "../envs/sp_utils.yaml"
     shell:'''
-cut -f2,9 {input} | taxonkit reformat -I 1 | sed 's/;/,/g' > {output}
+cut -f2,3 {input} | taxonkit reformat -I 1 | sed 's/;/,/g' | awk 'NR>1' > {output}
 '''
 
-rule get_verticality:
-    input: 
-        trees=rules.get_unrooted_trees.output.trees,
-        lineage=rules.get_lineage.output,
-        taxidmap=rules.make_blastdb.output.mapid
-        # sptree=config['species_tree']
-    output:
-        # ranger=temp(outdir+"/reco/{seed}_ranger.tsv"),
-        outdir+"/reco/{seed}_scores.tsv"
-    script:"../../software/foldtree/compute_scores.py"
-
-
-rule plot_trees:
-    input: 
-        scores=rules.get_verticality.output,
-        reco=rules.merge_Ranger.output.DTLs,
-        trees=outdir+"/trees/{seed}_unrooted_trees.txt",
-        mltrees=outdir+"/trees/{seed}_mltrees.txt"
-    output:
-        model=outdir+"/plots/{seed}_trees.pdf",
-        reco=outdir+"/plots/{seed}_discordance.pdf"
-    script: "../scripts/compare_trees.R"
-
-
-rule get_runstats:
-    input: seeds_unrooted_trees
-    output:
-        aln=outdir+"/stats/{seed}_aln.stats",
-        time=outdir+"/stats/{seed}_runtime.stats"
-    threads: 12
-    shell:'''
-basedir=$(dirname {input} | rev | cut -f2- -d'/' | rev | sort -u)
-seqkit stats $basedir/*/*alg* -j {threads} -a -b -T | cut -f1,4,6,12 > {output.aln}
-
-datasetdir=$(echo $basedir | rev | cut -f3- -d'/' | rev)
-echo -e "dirname\\tbasename\\ts\\th:m:s\\tmax_rss\\tmax_vms\\tmax_uss\\tmax_pss\\tio_in\\tio_out\\tmean_load\\tcpu_time" > {output.time}
-find $datasetdir/benchmarks/ -type f -name "*txt" -printf "%h\\t%f\\t" -exec tail -1 {{}} \; >> {output.time}
-'''
-
-rule plot_runstats:
-    input: 
-        aln=rules.get_runstats.output.aln,
-        time=rules.get_runstats.output.time
-    output: outdir+"/plots/{seed}_runtime.pdf"
-    script: "../scripts/analyze_runtimes.R"
-
-rule prepare_astral_pro:
-    input:
-        table=config['input_table_file'],
-        taxidmap=rules.make_blastdb.output.mapid
-    output:
-        outdir+"/reco/gene_species.map"
-    shell:'''
-csvtk join -H -t -f 2 -L {input.taxidmap} {input.table} | cut -f1,10 > {output}
-'''
+# rule get_verticality:
+#     input: 
+#         trees=rules.get_unrooted_trees.output,
+#         lineage=rules.get_lineage.output,
+#         taxidmap=rules.make_blastdb.output.mapid
+#         # sptree=config['species_tree']
+#     output:
+#         # ranger=temp(outdir+"/reco/{seed}_ranger.tsv"),
+#         outdir+"/reco/{seed}_scores.tsv"
+#     conda: "../envs/sp_python.yaml"
+#     script:"../scripts/foldtree/compute_scores.py"
 
 rule support_astral_pro:
     input:
-        sptree=config['species_tree_labels'],
-        genemap=rules.prepare_astral_pro.output,
-        trees=rules.get_unrooted_trees.output.trees,
+        sptree=config['species_tree'],
+        genemap=homodir+"/db/gene_species.map",
+        trees=rules.get_unrooted_trees.output,
     output: 
-        gt=outdir+"/reco/{seed}_{mode}_{alphabet}_{model}_apro_input.nwk",
-        st=outdir+"/reco/{seed}_{mode}_{alphabet}_{model}_apro_support.nwk"
+        gt=outdir+"/reco/apro/{seed}_{mode}_{alphabet}_{model}_apro_input.nwk",
+        st=outdir+"/reco/apro/{seed}_{mode}_{alphabet}_{model}_apro_support.nwk"
     log: outdir+"/log/apro/{seed}_{mode}_{alphabet}_{model}_apro.log"
     params: config['root']
+    conda: "../envs/reco.yaml"
     shell:'''
-awk '$2=="{wildcards.mode}" && $3=="{wildcards.alphabet}" && $4=="{wildcards.model}"' {input.trees} | \
+awk '$2=="{wildcards.mode}" && $3=="{wildcards.alphabet}" && $4=="{wildcards.model}"' {input} | \
 cut -f5 > {output.gt}
 astral-pro -c {input.sptree} -a {input.genemap} -u 2 -i {output.gt} -o {output.st} -C --root {params} 2> {log}
 '''
 
-# rule run_astral_pro:
-#     input:
-#         gt=rules.support_astral_pro.output.gt,
-#         genemap=rules.prepare_astral_pro.output,
-#         trees=rules.get_unrooted_trees.output.trees
-#     output: outdir+"/reco/{seed}_{mode}_{alphabet}_{model}_apro_sptree.nwk"
-#     params: config['root']
-#     log: outdir+"/log/apro/{seed}_{mode}_{alphabet}_{model}_apro.log"
-#     threads: 4
+rule disco:
+    input:
+        # sptree=config['species_tree'],
+        genemap=homodir+"/db/gene_species.map",
+        trees=rules.get_unrooted_trees.output,
+    output: 
+        gt=outdir+"/reco/disco/{seed}_{mode}_{alphabet}_{model}_disco_input.nwk",
+        gt_out=outdir+"/reco/disco/{seed}_{mode}_{alphabet}_{model}_disco_output.nwk"
+    log: outdir+"/log/disco/{seed}_{mode}_{alphabet}_{model}_disco.log"
+    params: config['root']
+    conda: "../envs/reco.yaml"
+    shell:'''
+awk '$2=="{wildcards.mode}" && $3=="{wildcards.alphabet}" && $4=="{wildcards.model}"' {input} | \
+cut -f5 | nw_rename - {input.genemap} > {output.gt}
+disco.py -i {output.gt} -o {output.gt_out}
+'''
+
+
+rule plot_trees:
+    input: 
+        sptree=config['species_tree'],
+        # scores=rules.get_verticality.output,
+        reco=rules.merge_Notung.output,
+        trees=outdir+"/trees/{seed}_unrooted_trees.txt",
+        mltrees=outdir+"/trees/{seed}_mltrees.txt",
+        table=config['data_dir']+'meta/'+config["homology_dataset"]+'_uniprot_genomes.tsv',
+        taxidmap=homodir+"/db/taxidmap",
+        disco=expand(outdir+"/reco/disco/{seed}_{mode}_{comb}_disco_output.nwk", 
+                     seed=config['seed'], mode=config["modes"], comb=config["combinations"]),
+        apro_trees=expand(outdir+"/reco/apro/{seed}_{mode}_{comb}_apro_support.nwk", 
+                     seed=config['seed'], mode=config["modes"], comb=config["combinations"])
+    output:
+        # apro=outdir+"/plots/{seed}_astral_pro.pdf",
+        # model=outdir+"/plots/{seed}_trees.pdf",
+        reco=outdir+"/plots/{seed}_discordance.pdf"
+    conda: "../envs/sp_R.yaml"
+    script: "../scripts/compare_sptree.R"
+
+
+# rule plot_trees:
+#     input: 
+#         sptree=config['species_tree'],
+#         # scores=rules.get_verticality.output,
+#         reco=rules.merge_Notung.output,
+#         trees=outdir+"/trees/{seed}_unrooted_trees.txt",
+#         mltrees=outdir+"/trees/{seed}_mltrees.txt",
+#         table=config['data_dir']+'meta/'+config["homology_dataset"]+'_uniprot_genomes.tsv',
+#         taxidmap=homodir+"/db/taxidmap",
+#         disco=expand(outdir+"/reco/disco/{seed}_{mode}_{comb}_disco_output.nwk", 
+#                      seed=config['seed'], mode=config["modes"], comb=config["combinations"]),
+#         apro_trees=expand(outdir+"/reco/{seed}_{mode}_{comb}_apro_support.nwk", 
+#                      seed=config['seed'], mode=config["modes"], comb=config["combinations"])
+#     output:
+#         apro=outdir+"/plots/{seed}_astral_pro.pdf",
+#         model=outdir+"/plots/{seed}_trees.pdf",
+#         reco=outdir+"/plots/{seed}_discordance.pdf"
+#     conda: "../envs/sp_R.yaml"
+#     script: "../scripts/compare_trees.R"
+
+
+# rule get_runstats:
+#     input: seeds_unrooted_trees
+#     output:
+#         aln=outdir+"/stats/{seed}_aln.stats",
+#         time=outdir+"/stats/{seed}_runtime.stats"
+#     threads: 12
+#     conda: "../envs/sp_utils.yaml"
 #     shell:'''
-# astral-pro -t {threads} -a {input.genemap} -u 1 -i {input.gt} -o {output} --root {params} 2> {log}
+# basedir=$(dirname {input} | rev | cut -f2- -d'/' | rev | sort -u)
+# seqkit stats $basedir/*/*alg* -j {threads} -a -b -T | cut -f1,4,6,12 > {output.aln}
+
+# datasetdir=$(echo $basedir | rev | cut -f3- -d'/' | rev)
+# echo -e "dirname\\tbasename\\ts\\th:m:s\\tmax_rss\\tmax_vms\\tmax_uss\\tmax_pss\\tio_in\\tio_out\\tmean_load\\tcpu_time" > {output.time}
+# find $datasetdir/benchmarks/ -type f -name "*txt" -printf "%h\\t%f\\t" -exec tail -1 {{}} \; >> {output.time}
 # '''
 
-rule plot_astral_pro:
-    input:
-        sptree=config['species_tree_labels'],
-        groups=config['taxons_file'],
-        trees=expand(outdir+"/reco/{seed}_{mode}_{comb}_apro_support.nwk", seed=config['seed'], mode=modes, comb=combinations)
-        # sptrees=expand(outdir+"/reco/{seed}_{mode}_{alphabet}_apro_sptree.nwk", seed=config['seed'], mode=modes, alphabet=alphabets_fident)
-    output: outdir+"/plots/{seed}_astral_pro.pdf"
-    script: "../scripts/analyze_apro.R"
-# reco_dir=$(dirname {input.trees} | sort -u)
+# rule plot_runstats:
+#     input: 
+#         aln=rules.get_runstats.output.aln,
+#         time=rules.get_runstats.output.time
+#     output: outdir+"/plots/{seed}_runtime.pdf"
+#     conda: "../envs/sp_R.yaml"
+#     script: "../scripts/analyze_runtimes.R"
+
+
+# rule plot_astral_pro:
+#     input:
+#         sptree=config['species_tree'],
+#         table=config['data_dir']+'/meta/uniprot_genomes.tsv',
+#         trees=expand(outdir+"/reco/{seed}_{mode}_{comb}_apro_support.nwk", 
+#                      seed=config['seed'], mode=config["modes"], comb=config["combinations"])
+#     output: outdir+"/plots/{seed}_astral_pro.pdf"
+#     conda: "../envs/sp_R.yaml"
+#     script: "../scripts/analyze_apro.R"
+# reco_dir=$(dirname {input} | sort -u)
 

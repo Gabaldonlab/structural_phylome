@@ -1,43 +1,51 @@
 # PARAMS
 
-# Download pipeline
+# Download pipeline, exclude structures with mean pLDDT lower than X
 low_confidence: 40
-# minimum length of seed protein to keep
+# minimum length of seed protein to keep (used in cif2fasta.py)
 min_len: 0
+
+# possible methodological combination. You can exclude whichever
+combinations: ["3Di_3Di", "aa_FM", "aa_LG", "3Di_GTR", "3Di_FT", "comb_part", "3Di_LLM", "3Di_AF"] #, "3Di_FTPY"]
+# Subset of the first one that requires ML 
+combinations_ML: ["3Di_3Di", "aa_LG", "3Di_GTR", "comb_part", "3Di_LLM", "3Di_AF"]
+
+# Target sets, you can exclude whichever to reduce computations
+modes: ['blast', 'fs', 'common', 'union']
+# Which target set will be used in foldmason examples
+foldmason_set: 'union'
+# Number of foldmason examples
+n_examples: 50
 
 # target per queries in both foldseek and blast
 target_seqs: 1000
 max_seqs_brh: 5
 
-# blast evalue
+# minimum filter evalue
 eval_both: 1e-3
 coverage: 50
 eval_brh: 10
 
-# how many sequence max to do the tree?
+# how many targets to do the tree
 max_seqs: 150
 
-# min lddt to mask residues
+# how many minimum common targets to proceed with the tree
+min_common: 4
+
+# min lddt to mask residues in 3di alignments
 min_lddt: 50
+
 # Ultrafast bootstrap for iqtree
 UF_boot: 1000
-# Boostrap for quicktree
+# Boostrap for fastme
 distboot: 100
 
-# trimal parameters
-# trimal_cons: 30
-# trimal_gt: 0.1
-# if trimmed aln shorter than this exclude
-# min_trim_len: 30
-
 # files and folders
-subst_matrix: 'resources/subst_matrixes/mat3di.out'
-subst_matrix_tree: 'resources/subst_matrixes/3DI.nexus'
-sequence_dir: 'results/data/fastas/'
-structure_dir: 'results/data/structures/'
-gff_dir: 'results/data/gffs/'
-cath_dir: 'results/data/cath/'
+subst_matrix: 
+  aln: 'resources/subst_matrixes/mat3di.out'
+  3di: 'resources/subst_matrixes/3DI.nexus'
+  LLM: 'resources/subst_matrixes/Q_mat_LLM_Garg.txt'
+  AF: 'resources/subst_matrixes/Q_mat_AF_Garg.txt'
 
+data_dir: 'results/data/'
 outdir: 'results/'
-
-n_examples: 50

@@ -1,0 +1,13 @@
+# Input file
+homology_dataset: 'bacteria_example'
+phylo_dataset: 'example_phylome'
+taxids: 'data/input/Test_set.txt'
+species_tree: 'data/sptrees/Test.nwk'
+seed: ['UP000000625']
+root: 'ecoli'
+
+# this is the number of seed genes to run the pipeline
+test_seeds: 'data/seeds/example_seeds.txt'
+modes: ['common']
+
+n_examples: 3

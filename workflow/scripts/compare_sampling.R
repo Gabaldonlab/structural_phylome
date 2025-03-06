@@ -1,31 +1,33 @@
-library(tidyverse)
+suppressPackageStartupMessages(library(tidyverse))
 library(patchwork)
-library(cowplot)
+suppressPackageStartupMessages(library(cowplot))
 source("workflow/scripts/functions.R")
 theme_set(theme_bw())
 
 taxidmap <- read_delim(snakemake@input[["taxidmap"]], 
-                       col_names = c("target", "Tax_ID"), show_col_types=F)
+                       col_names = c("target", "Tax_ID"), show_col_types=FALSE)
 
-tax <- read_delim(snakemake@input[["groups"]], show_col_types=F)
-# read input table
-lvls_tax <- rev(c(unique(tax$Clade), "archaea", "bacteria"))
+# tax <- read_delim(snakemake@input[["groups"]], show_col_types=F)
+# # read input table
+# lvls_tax <- rev(c(unique(tax$Clade), "archaea", "bacteria"))
 
-table_columns <- c('Proteome_ID', 'Tax_ID', 'count1', 'count2', 'count3', 
-                   'genome', 'source', 'species', 'mnemo')
+# table_columns <- c('Proteome_ID', 'Tax_ID', 'count1', 'count2', 'count3', 
+#                    'genome', 'source', 'species', 'mnemo')
 
-table <- read_delim(snakemake@input[["table"]], show_col_types=F, 
-                    delim = "\t", col_names = table_columns) %>% 
-  left_join(tax, by = "Tax_ID") %>% 
-  mutate(Clade = ifelse(is.na(Clade), mnemo, Clade),
-         Clade = factor(Clade, levels = lvls_tax))
+table <- read_delim(snakemake@input[["table"]], show_col_types=FALSE, 
+                    delim = "\t") 
+  # left_join(tax, by = "Tax_ID") %>% 
+  # mutate(Clade = ifelse(is.na(Clade), mnemo, Clade),
+  #        Clade = factor(Clade, levels = lvls_tax))
 
-blast_self <- read_delim(snakemake@input[["self_blast"]], col_names = blast_columns) %>% 
+blast_self <- read_delim(snakemake@input[["self_blast"]], show_col_types=FALSE, 
+                        col_names = blast_columns) %>% 
   filter(query==target) %>% 
   mutate(blast_selfbit=bitscore) %>% 
   select(query, blast_selfbit)
 
-fs_self <- read_delim(snakemake@input[["self_fs"]], col_names = fs_columns) %>% 
+fs_self <- read_delim(snakemake@input[["self_fs"]], show_col_types=FALSE, 
+                      col_names = fs_columns) %>% 
   filter(query==target) %>% 
   mutate(fs_selfbit=bitscore) %>% 
   select(query, fs_selfbit)
@@ -272,94 +274,3 @@ fs_p <- fs %>%
 saturation_plot <- (blast_p | fs_p) + plot_layout(guides = "collect")
 ggsave(snakemake@output[["saturation"]], saturation_plot, width = 7, height = 5, dpi = 300)
 
-# blast_single_df <- blast %>% 
-#   filter(evalue<opt$min_evalue) %>% 
-#   group_by(query, staxids) %>% 
-#   count() %>% 
-#   ungroup(staxids) %>% 
-#   mutate(is_single=ifelse(any(n>1), FALSE, TRUE), nspecies=length(unique(staxids))) %>% 
-#   group_by(query, is_single, nspecies) %>% 
-#   summarise()
-# 
-# blast_single_plot <- ggplot(blast_single_df, aes(nspecies)) + 
-#   geom_histogram(binwidth=1, color="black", fill=palette_singleton["only_blast"]) +
-#   scale_x_continuous(breaks = seq(1,250,3)) + 
-#   facet_grid(~is_single)
-# 
-# 
-# fs_single_df <- fs %>% 
-#   filter(evalue<opt$min_evalue) %>% 
-#   group_by(query, Tax_ID) %>% 
-#   count() %>% 
-#   ungroup(Tax_ID) %>% 
-#   mutate(is_single=ifelse(any(n>1), FALSE, TRUE), nspecies=length(unique(Tax_ID))) %>% 
-#   group_by(query, is_single, nspecies) %>% 
-#   summarise()
-# 
-# fs_single_plot <- ggplot(fs_single_df, aes(nspecies)) + 
-#   geom_histogram(binwidth=1, color="black", fill=palette_singleton["only_fs"]) +
-#   scale_x_continuous(breaks = seq(1,250,3)) + 
-#   facet_grid(~is_single)
-
-
-# library("optparse")
-# 
-# option_list <- list(
-#   make_option(c("-i", "--input"),
-#               type = "character", default = NULL,
-#               help = "input table file", dest = "input"
-#   ),
-#   make_option(c("-m", "--meta"),
-#               type = "character", default = NULL,
-#               help = "meta file", dest = "meta"
-#   ),
-#   make_option(c("-t", "--taxidmap"),
-#               type = "character", default = NULL,
-#               help = "taxidmap file", dest = "taxidmap"
-#   ),
-#   make_option(c("-b", "--blast"),
-#               type = "character", default = NULL,
-#               help = "blast file", dest = "blast"
-#   ),
-#   make_option(c("-f", "--fs"),
-#               type = "character", default = NULL,
-#               help = "foldseek file", dest = "fs"
-#   ),
-#   make_option(c("--fb"),
-#               type = "character", default = NULL,
-#               help = "foldseek brh", dest = "fs_brh"
-#   ),
-#   make_option(c("--bb"),
-#               type = "character", default = NULL,
-#               help = "blast brh", dest = "blast_brh"
-#   ),
-#   make_option(c("-o", "--output"),
-#               type = "character", default = NULL,
-#               help = "eda plot filename", metavar = "character", dest = "outfile"
-#   ),
-#   make_option(c("--o2"),
-#               type = "character", default = NULL,
-#               help = "saturation plot filename", metavar = "character", dest = "outfile2"
-#   ),
-#   make_option(c("--sf"),
-#               type = "character", default = NULL,
-#               help = "self foldseek", dest = "self_fs"
-#   ),
-#   make_option(c("--sb"),
-#               type = "character", default = NULL,
-#               help = "self blast", dest = "self_blast"
-#   ),
-#   make_option(c("-e", "--evalue"),
-#               type = "numeric", default = 1e-3,
-#               help = "e value for tree sequences", dest = "min_evalue"
-#   ),
-#   make_option(c("-s", "--max_seqs"),
-#               type = "integer", default = 150,
-#               help = "max number of sequences in trees", dest = "max_seqs"
-#   )
-# )
-# 
-# desc <- "Produces informative plot on foldseek and blast results comparison"
-# 
-# opt_parser <- OptionParser(option_list = option_list, description = desc)
-# opt <- parse_args(opt_parser)

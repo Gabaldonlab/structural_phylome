@@ -1,6 +1,0 @@
-# Input file
-dataset: 'Hsap_LUCA'
-input_table_file: 'data/input_tables/LUCA.csv'
-species_tree: 'data/sptrees/homo.spTree.nw'
-taxons_file: 'data/meta/Hsap_taxon.csv'
-seed: ['UP000005640']

@@ -13,42 +13,35 @@ if dataset_config_file is not None:
     # Load dataset-specific parameters
     configfile: dataset_config_file
 
-include: 'rules/prepare.smk'
-include: 'rules/structure.smk'
-include: 'rules/sequence.smk'
+# include: 'rules/prepare.smk'
+# include: 'rules/structure.smk'
+# include: 'rules/sequence.smk'
+include: 'rules/initialize.smk'
 include: 'rules/checks.smk'
 include: 'rules/common.smk'
 include: 'rules/analysis.smk'
 
-input_table = pd.read_csv(config['input_table_file'], header=None, sep='\t')
-input_table.columns = ['uniprot', 'taxid', 'count1', 'count2', 'count3', 'genome', 'source', 'species', 'mnemo']
+
+input_table = pd.read_csv(config['taxids'], sep='\t')
+input_table.columns = ['uniprot', 'taxid', 'mnemo']
 input_dict = input_table.set_index('uniprot').T.to_dict()
 
 codes = list(input_table['uniprot'])
 
-outdir=config['outdir']+config['dataset']
+homodir=config['outdir']+'homology/'+config['homology_dataset']
+outdir=config['outdir']+'phylogeny/'+config['phylo_dataset']
 
 # possible combinations:
 combinations_codes_str=[x+"_"+y for x in codes for y in codes]
 
-# mattypes = ['fident', 'alntmscore', 'lddt']
-modes = ['blast', 'fs', 'common', 'union']
-methods = ['blast', 'fs']
-
-alphabets = ['aa', '3Di']
-alphabets_fident = ['aa', '3Di', 'fident']
-
-models=["3Di", "QT", "LG", "GTR", "FT"]
-combinations=["3Di_3Di", "aa_QT", "aa_LG", "3Di_GTR", "3Di_FT", "3Di_FTPY"]
-combinations_ML=["3Di_3Di", "aa_LG", "3Di_GTR"]
-
-plots = ["homology", "saturation", "runtime", "astral_pro", "trees", "discordance", "singletons", "distance", "examples"]
+# for the plots you need to work a bit on adapting to new nonphylome method
+plots = ["discordance"] # "runtime", "astral_pro", "trees", "discordance", "examples", "distance"
 
 rule all:
     input:
-        expand(outdir+"/homology/{seed}_blast_brh.tsv", seed=config['seed']),
-        expand(outdir+"/homology/{seed}_fs_brh.tsv", seed=config['seed']),
-        outdir+'/db/db_num.tsv',
         expand(outdir+"/plots/{seed}_{plot}.pdf", seed=config['seed'], plot=plots),
-        expand(outdir+"/plots/{seed}_foldmason", seed=config['seed']),
-        expand(config['cath_dir']+'{code}_cath.tsv', code=codes)
+        # expand(outdir+"/plots/{seed}_foldmason", seed=config['seed']),
+        expand(outdir+"/trees/{seed}_{mode}_trees.txt", seed=config['seed'], mode=config["modes"])
+        # expand(outdir+"/reco/{seed}_notung.tsv", seed=config['seed']),
+        # expand(outdir+"/trees/{seed}_mltrees.txt", seed=config['seed'])
+

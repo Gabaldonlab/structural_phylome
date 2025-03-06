@@ -1,0 +1,5 @@
+uniprot_df: 'data/input/Hsapopi_set.txt'
+dbs: ['eggnog', 'oma']
+target_seqs: 500
+min_seqs: 5
+evalue: 0.001

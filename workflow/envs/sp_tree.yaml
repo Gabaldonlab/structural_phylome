@@ -1,0 +1,11 @@
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  # - gxx
+  # - hmmer
+  - iqtree
+  - mafft
+  - fastme
+  - trimal
+  - foldmason

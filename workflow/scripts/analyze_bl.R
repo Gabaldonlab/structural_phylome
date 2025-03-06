@@ -5,10 +5,10 @@ source("workflow/scripts/functions.R")
 theme_set(theme_classic())
 
 # all trees
-df_trees <- read_delim(snakemake@input[["trees"]], show_col_types = FALSE,
+df_trees <- read_delim(snakemake@input[["trees"]], delim = "\t", show_col_types = FALSE,
                        col_names = c("gene", "targets", "alphabet", "model", "tree")) %>% 
   mutate(model=factor(model, levels=models)) %>% 
-  filter(targets=="union")
+  filter(targets=="common")
 
 # Read all trees
 ts <- read.tree(text = df_trees$tree)

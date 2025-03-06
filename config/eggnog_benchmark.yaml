@@ -1,0 +1,14 @@
+# Input file
+homology_dataset: 'hsap_euka'
+phylo_dataset: 'eggnog_benchmark'
+taxids: 'data/input/Hsapopi_set.txt'
+species_tree: 'data/sptrees/homo_eggnog.nwk'
+seed: ['UP000005640']
+root: 'Atha'
+
+# this is the number of seed genes to run the pipeline
+test_seeds: 'data/seeds/eggnog_benchmark.txt'
+modes: ['common']
+
+foldmason_set: 'common'
+n_examples: 3

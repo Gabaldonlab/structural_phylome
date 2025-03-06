@@ -3,13 +3,59 @@ library(patchwork)
 source("workflow/scripts/functions.R")
 theme_set(theme_bw())
 
-df <- read_delim(snakemake@input[["time"]], 
-                 show_col_types = FALSE) %>% 
-  mutate(basename=gsub(".txt", "", basename),
-         step=basename(dirname),
-         max_rss_gb = measurements::conv_unit(max_rss, from = "MB", to = "GB")) %>% 
-  separate(basename, c("seed", "gene", "method", "alphabet", "model"))
-
+# all_fls <- list.files("results/phylogeny/hsap_1kseeds/benchmarks/", full.names = T, 
+#            include.dirs = F, pattern = "*txt", recursive = T) 
+# 
+# stats <- read_delim("tmp.stats") %>% 
+#   separate(file, c("gene", "targets", "alphabet"), sep = "_") %>%
+#   mutate(alphabet = gsub(".alg", "", alphabet)) %>% 
+#   separate(alphabet, c("alphabet", "clean")) %>% 
+#   filter(!is.na(clean))
+# 
+# tmp <- read_delim(all_fls[1])
+# df_tmp <- sapply(all_fls, function(x) readLines(x)[-1]) %>% 
+#   enframe() %>% 
+#   separate(value, colnames(tmp), convert = TRUE) 
+# 
+# df <- df_tmp %>% 
+#   mutate(method = basename(dirname(name)), name = basename(name),
+#          max_rss_gb = max_rss/1024) %>% 
+#   separate(name, c("seed", "gene", "targets", "alphabet", "model"), sep = "_") %>% 
+#   mutate(targets = gsub(".txt", "", targets),
+#          alphabet = gsub(".txt", "", alphabet),
+#          model = gsub(".txt", "", 
+#                       case_when(method=="foldtree" ~ NA,
+#                                 method=="fastme" ~ NA, 
+#                                 .default = model))) %>% 
+#   left_join(stats)
+# 
+# 
+# # Alignment
+# # df %>% 
+# #   filter(method %in% c("mafft", "foldmason")) %>% 
+# #   select(targets, alphabet, `h:m:s`, num_seqs, avg_len, method, max_rss_gb) %>% 
+# #   ggplot(aes(avg_len, `h:m:s`, color=targets)) + 
+# #   geom_point() + 
+# #   facet_grid(~method)
+# 
+# 
+# 
+# df <- read_delim(snakemake@input[["time"]], 
+#                  show_col_types = FALSE) %>% 
+#   mutate(basename=gsub(".txt", "", basename),
+#          step=basename(dirname),
+#          max_rss_gb = max_rss/1024) %>% 
+#   separate(basename, c("seed", "gene", "method", "alphabet", "model"))
+# 
+# 
+# df %>%
+#   filter(method %in% c("fastme", "iqtree")) %>%
+#   select(targets, model, `h:m:s`, num_seqs, avg_len, method, max_rss_gb) %>% 
+#   mutate(model = ifelse(is.na(model), "FM", model)) %>% 
+#   ggplot(aes(num_seqs*avg_len, `h:m:s`, color=model)) + 
+#   geom_point() + 
+#   geom_smooth()
+#   scale_color_manual(values = palettes_model)
 
 aln_stats <- read_delim(snakemake@input[["aln"]], show_col_types = FALSE) %>%
   mutate(trim = ifelse(grepl("clean", file), "clean", "aln"),

@@ -8,16 +8,15 @@ theme_set(theme_classic())
 
 seeds <- readLines(snakemake@input[["ids"]])
 
-seed_sp <- gsub("_examples.ids", "", basename(snakemake@input[["ids"]]))
+seed_sp <- snakemake@params[["seed"]]
 seed_dir <- gsub("trees", "seeds", dirname(snakemake@input[["trees"]]))
 
 taxmap <- read_delim(snakemake@input[["taxidmap"]], 
                      delim = "\t", col_names = c("label", "Tax_ID"),
                      show_col_types = FALSE) %>% 
-  left_join(read_delim(snakemake@input[["meta"]],
+  left_join(read_delim(snakemake@input[["table"]],
                        show_col_types = FALSE), by = "Tax_ID") %>% 
   dplyr::select(label, Proteome_ID, mnemo)
-
 
 sptree <- read.tree(snakemake@input[["sptree"]])
 translate <- deframe(distinct(dplyr::select(taxmap, Proteome_ID, mnemo)))
@@ -34,15 +33,16 @@ gff <- read_delim(c(snakemake@input[["gff"]]),
                   show_col_types = FALSE) %>% 
   filter(type %in% c(interesting_types, "Chain"))
 
-reco <- read_delim(snakemake@input[["reco"]], show_col_types = FALSE) %>% 
-  mutate(model=factor(model, levels=models))
+reco <- read_delim(snakemake@input[["reco"]], 
+                   show_col_types = FALSE, col_names = c("gene", "dups", "losses")) %>% 
+  separate(gene, c("id", "targets", "alphabet", "model")) 
 
 plot_list = list()
 plot_domains = list()
 
 for (seed in seeds) {
   print(seed)
-  fls <- list.files(paste0("results/test/seeds/", seed_sp, "/", seed), full.names = TRUE)
+  fls <- list.files(paste0(seed_dir, "/", seed_sp, "/", seed), full.names = TRUE)
   ids <- fls[grepl("(blast|fs).*ids$", fls)]
 
   x <- sapply(ids, readLines, simplify = FALSE)
@@ -70,7 +70,7 @@ for (seed in seeds) {
 
   conf_df <- tibble(label=union(x$blast, x$fs)) %>% 
     left_join(taxmap, by="label") %>% 
-    mutate(confidence_file=paste0("results/data/structures/",
+    mutate(confidence_file=paste0(snakemake@params[["struct_dir"]],
                                   Proteome_ID,
                                   "/confidence/",
                                   label,
@@ -122,7 +122,8 @@ for (seed in seeds) {
     summarise(mn=mean(conf)) %>% 
     mutate(scaled_mn=length(names(seqs))*mn/100)
   
-  plot_3di_aln <- ggmsa(aln_3di_trimmed, seq_name = FALSE, font = NULL, show.legend = TRUE, border = NA) +
+  plot_3di_aln <- ggmsa(aln_3di_trimmed, seq_name = FALSE, 
+                        font = NULL, show.legend = TRUE, border = NA) +
     labs(title = paste(seed, "- 3Di union hits cleaned aln")) + 
     geom_line(mapping = aes(x=pos_trim, y=scaled_mn), data = scaled_conf_df, inherit.aes = F) +
     coord_cartesian() + 
@@ -143,7 +144,8 @@ for (seed in seeds) {
     theme_void() + 
     theme(axis.text.x = element_text())
 
-  trees_files <- fls[grepl("nwk$", fls)]
+  trees_files <- fls[grepl(".nwk$", fls)]
+  trees_files <- trees_files[!grepl("_rnm.nwk$", trees_files)]
 
   trees <- read.tree(text = sapply(trees_files, readLines))
   names(trees) <- gsub(paste0(seed,"_|(3Di|aa)_|.nwk$"), "", basename(trees_files))
@@ -167,9 +169,9 @@ for (seed in seeds) {
 
   a <- plot_dom(trees[["union_LG"]], seed, gff, prot, singleton_df, "LG")
   b <- plot_dom(trees[["union_FT"]], seed, gff, prot, singleton_df, "FT")
-  plot_tree_domain <- (a[[2]] | a[[1]]) | (b[[2]] | b[[1]])
+  plot_tree_domain <- (a[[2]] + a[[1]] + b[[2]] + b[[1]]) + plot_layout(nrow = 1)
 
-  plot_ranger <- reco %>% 
+  plot_notung <- reco %>% 
     filter(id==seed) %>% 
     left_join(singleton_df_red) %>% 
     ggplot(aes(targets, (dups+losses)/n, color=model)) + 
@@ -204,7 +206,7 @@ for (seed in seeds) {
   title <- ifelse(is.null(title), seed, paste(seed, "-", title))
 
   first_row <- (plot_seed | plot_venn) + plot_layout(widths = c(4.5,1))
-  bottom_row <- ((plot_conf / plot_ranger) | tree_plot) + plot_layout(widths = c(1, 5))
+  bottom_row <- ((plot_conf / plot_notung) | tree_plot) + plot_layout(widths = c(1, 5))
   outplot <- (first_row / plot_3di_aln / plot_aa_aln / bottom_row) + 
     plot_layout(heights = c(.5,1,1,2)) +
     plot_annotation(title = title, subtitle = subtitle, tag_levels = "A")
