@@ -9,7 +9,7 @@ min_len: 0
 combinations: ["3Di_3Di", "aa_FM", "aa_LG", "3Di_GTR", "3Di_FT", "comb_part", "3Di_LLM", "3Di_AF"] #, "3Di_FTPY"]
 combinations_rev: ["aa_FMG"]
 cxx: [10, 60]
-n_test: 1
+# n_test: 100
 # Subset of the first one that requires ML 
 combinations_ML: ["3Di_3Di", "aa_LG", "3Di_GTR", "comb_part", "3Di_LLM", "3Di_AF"]
 

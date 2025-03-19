@@ -10,17 +10,18 @@ fs_columns <- c("query","target","pident","length","mismatch","gapopen",
                 "qstart","qend","sstart","send","evalue","bitscore",
                 "lddt","alntmscore","rmsd","prob","qcov","tcov")
 
-models <- c("LG", "FM", "QT", "part", "FT",
+models <- c("C10", "C60","LG", "FM", "FMG","QT", "part", "FT",
             "FTPY", "3Di", "GTR", "AF", "LLM")
 
-palettes_model <- c("#BF360C", "#FFA000", "#FFA000", "purple", "#D4E157","#646B00",
+palettes_model <- c("#c71818", "#c71818", "#BF360C", "#FFA000", "#FFA000", "#ffc400",
+                    "purple", "#D4E157","#646B00",
                     "#75C323", "#40A79D", "#33ceff", "#3396ff")
 names(palettes_model) <- models
 
 
 df_model <- tibble(model = factor(models), 
-       data = c(rep("AA", 3), "Mixed", rep("3Di", 6)),
-       algorithm = c("ML", rep("Distance", 2), "ML", 
+       data = c(rep("AA", 6), "Mixed", rep("3Di", 6)),
+       algorithm = c(rep("ML", 3), rep("Distance", 3), "ML", 
                      rep("Distance", 2), rep("ML", 4))) %>% 
   filter(!model %in% c("QT", "FTPY") )
 df_model$data <- factor(df_model$data, levels = c("AA", "Mixed", "3Di"))
@@ -160,7 +161,7 @@ get_disco_rf <- function(disco_fls, sptree) {
   }
   disco_rf <- disco_rf %>% 
     mutate(bn = gsub("disco_", "", gsub(".nwk", "", bn))) %>% 
-    separate(bn, into = c("seed", "target", "alphabet", "model"), sep = "_")
+    separate(bn, into = c("seed", "targets", "alphabet", "model"), sep = "_")
   return(disco_rf)  
 }
 
@@ -191,7 +192,7 @@ get_bs_df <- function(trees) {
 
 
 get_apro_stats <- function(apro_trees) {
-  trees_df <- fortify(apro_trees) %>% 
+  trees_df <- ggtree::fortify(apro_trees) %>% 
     group_by(.id) %>% 
     mutate(ordered = rank(y)) %>% 
     separate(.id, c("targets", "model")) %>% 
@@ -237,3 +238,27 @@ distance_to_seed <- function(df_trees) {
 }
 
 
+plot_stat <- function(df, alt="g", paired=T) {
+  df <- droplevels(df)
+
+  bxp <- ggboxplot(
+    df, x = "model", y = "y", 
+    color = "targets", palette = palettes_method
+  )
+
+  stat.test <- df %>% 
+    t_test(y ~ model, p.adjust.method = "holm", 
+           paired=paired,
+           alternative=alt, ref.group = "LG") %>%
+    add_xy_position(x = "model", dodge = 0.8)
+  
+  bxp + 
+    stat_pvalue_manual(
+      stat.test,  
+      label = "{p.adj.signif}",  
+      tip.length = 0.02,
+      step.increase = 0.05,
+      hide.ns = TRUE,
+      remove.bracket = TRUE
+    ) 
+}

@@ -145,6 +145,7 @@ rm -f ${{tree_prefix}}.model.gz ${{tree_prefix}}.splits.nex ${{tree_prefix}}.con
 '''
 # --boot-trees
 
+# add safe
 rule iqtree_cxx:
     input: 
         aln=outdir+"/seeds/{seed}/{i}/{i}_common_{alphabet}.alg.clean",
@@ -156,14 +157,14 @@ rule iqtree_cxx:
         ufboot=config['UF_boot']
     log: outdir+"/log/iqtree/{seed}_{i}_common_{alphabet}_C{cxx}.log"
     benchmark: outdir+"/benchmarks/iqtree/{seed}_{i}_common_{alphabet}_C{cxx}.txt"
-    threads: 4
+    threads: 14
     conda: "../envs/sp_tree.yaml"
     shell: '''
 tree_prefix=$(echo {output.tree} | sed 's/.nwk//')
 model=$(grep Best {input.iqtree} | cut -f2 -d':')
 
 iqtree2 -s {input.aln} --prefix $tree_prefix -B {params.ufboot} -T {threads} --quiet \
---mem 4G --cmin 4 --cmax 10 -m $model+C{wildcards.cxx} -redo
+--cmin 4 --cmax 10 -m $model+C{wildcards.cxx}
 
 mv ${{tree_prefix}}.treefile {output.tree}
 mv ${{tree_prefix}}.log {log}

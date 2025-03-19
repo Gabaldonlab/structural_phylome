@@ -120,3 +120,13 @@ The most important output files will be these two:
 # Contribute
 
 This modular pipeline was born with the idea to be easily expandable as so many new structural phylogenetics tools are being released each month. Feel free to contribute or open an issue!
+
+# TODOs
+
+* It would be cool to give a yaml with software parameters so that the pipeline is more customizable. For example: 
+```yaml
+	iqtree:
+		mset: LG,JTT
+		mrate: G,F
+```
+* add wsl wbtl and wsr would be cool 
