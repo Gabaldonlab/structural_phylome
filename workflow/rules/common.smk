@@ -157,7 +157,7 @@ rule iqtree_cxx:
         ufboot=config['UF_boot']
     log: outdir+"/log/iqtree/{seed}_{i}_common_{alphabet}_C{cxx}.log"
     benchmark: outdir+"/benchmarks/iqtree/{seed}_{i}_common_{alphabet}_C{cxx}.txt"
-    threads: 14
+    threads: 4
     conda: "../envs/sp_tree.yaml"
     shell: '''
 tree_prefix=$(echo {output.tree} | sed 's/.nwk//')

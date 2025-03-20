@@ -129,4 +129,5 @@ This modular pipeline was born with the idea to be easily expandable as so many 
 		mset: LG,JTT
 		mrate: G,F
 ```
-* add wsl wbtl and wsr would be cool 
+* add wsl wbtl and wsr would be cool
+* add info on ortho_benchmark pipeline

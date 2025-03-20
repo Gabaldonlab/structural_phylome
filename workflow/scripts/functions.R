@@ -161,7 +161,7 @@ get_disco_rf <- function(disco_fls, sptree) {
   }
   disco_rf <- disco_rf %>% 
     mutate(bn = gsub("disco_", "", gsub(".nwk", "", bn))) %>% 
-    separate(bn, into = c("seed", "targets", "alphabet", "model"), sep = "_")
+    separate(bn, into = c("targets", "alphabet", "model"), sep = "_")
   return(disco_rf)  
 }
 
@@ -238,27 +238,17 @@ distance_to_seed <- function(df_trees) {
 }
 
 
-plot_stat <- function(df, alt="g", paired=T) {
+stat_test <- function(df, alt="g", paired=T) {
   df <- droplevels(df)
-
-  bxp <- ggboxplot(
-    df, x = "model", y = "y", 
-    color = "targets", palette = palettes_method
-  )
 
   stat.test <- df %>% 
     t_test(y ~ model, p.adjust.method = "holm", 
            paired=paired,
            alternative=alt, ref.group = "LG") %>%
-    add_xy_position(x = "model", dodge = 0.8)
-  
-  bxp + 
-    stat_pvalue_manual(
-      stat.test,  
-      label = "{p.adj.signif}",  
-      tip.length = 0.02,
-      step.increase = 0.05,
-      hide.ns = TRUE,
-      remove.bracket = TRUE
-    ) 
+    add_xy_position(x = "model", fun = "max") %>% 
+    left_join(df_model, by = c("group2"="model")) %>% 
+    mutate(group2=paste0(group2,".",data))
+    # mutate(model=factor(group2, levels = models)) %>% 
+    # arrange(model) %>% 
+  return(stat.test)
 }
