@@ -117,6 +117,18 @@ The most important output files will be these two:
 * `results/{dataset}/trees/{seed}_unrooted_trees.txt`: has 5 columns (gene ID, target set, alphabet, model and tree text). This file is easily parsable in R or Python to do further analyses. You can find some R scripts to do that in `workflow/scripts/` 
 * `results/{dataset}/trees/{seed}_mltrees.txt`: results of IQ-Tree model selection. 
 
+## Foldtree benchmark
+
+You can first follow the instruction to run a foldtree benchmark following the [instruction](https://github.com/DessimozLab/fold_tree?tab=readme-ov-file#benchmarking-experiments) in their repo. Then, once you have these results you can compute our metrics by running this pipeline:
+
+```
+snakemake -s workflow/ft_benchmark.smk -d draft/foldtree_benchmark/zenodo/OMA_data/Eukaryota
+```
+
+The `-d` folder should be the same used for the foldtree benchmark.
+
+You will obtain the Astral-Pro, Disco, Notung and TCS reults in the `reconciliation` folder. These files can be easily parsed. You can see in `workflow/notebooks/draft.Rmd` an example on how to do that in order to reproduce [Fig. S3](https://github.com/Gabaldonlab/structural_phylome/blob/main/draft/figures/Fig_S3.pdf) 
+
 # Contribute
 
 This modular pipeline was born with the idea to be easily expandable as so many new structural phylogenetics tools are being released each month. Feel free to contribute or open an issue!
