@@ -41,7 +41,8 @@ rule all:
     input:
         expand(outdir+"/plots/{seed}_{plot}.pdf", seed=config['seed'], plot=plots),
         # expand(outdir+"/plots/{seed}_foldmason", seed=config['seed']),
-        expand(outdir+"/trees/{seed}_{mode}_trees.txt", seed=config['seed'], mode=config["modes"])
+        expand(outdir+"/trees/{seed}_{mode}_trees.txt", seed=config['seed'], mode=config["modes"]),
+        expand(outdir+"/stats/{seed}_runtime.stats", seed=config['seed']),
         # expand(outdir+"/reco/{seed}_notung.tsv", seed=config['seed']),
         # expand(outdir+"/trees/{seed}_mltrees.txt", seed=config['seed'])
 

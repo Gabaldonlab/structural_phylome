@@ -11,8 +11,8 @@ data/meta/*gz
 notebooks/prokaryote_sampling_cache/
 .Rproj.user
 logs/
-draft/foldtree_benchmark/zenodo/
-draft/foldtree_benchmark/fold_tree_t/
+draft/foldtree_benchmark/
+
 resources/fastas/
 resources/structures/
 workflow/notebooks/*cache/

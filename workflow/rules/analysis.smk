@@ -5,7 +5,6 @@ input_dict = input_table.set_index('uniprot').T.to_dict()
 codes = list(input_table['uniprot'])
 
 
-
 rule plot_blens:
     input:
         blast=homodir+"/{seed}_blast.tsv",
@@ -126,14 +125,18 @@ rule plot_trees:
         disco=expand(outdir+"/reco/disco/{seed}_{mode}_{comb}_disco_output.nwk", 
                      seed=config['seed'], mode=config["modes"], comb=config["combinations"]),
         apro_trees=expand(outdir+"/reco/apro/{seed}_{mode}_{comb}_apro_support.nwk", 
-                     seed=config['seed'], mode=config["modes"], comb=config["combinations"])
+                     seed=config['seed'], mode=config["modes"], comb=config["combinations"]),
+        disco_rev=expand(outdir+"/reco/disco/{seed}_common_{comb}_disco_output.nwk", 
+                     seed=config['seed'], comb=rev_combinations),
+        apro_trees_rev=expand(outdir+"/reco/apro/{seed}_common_{comb}_apro_support.nwk", 
+                     seed=config['seed'], comb=rev_combinations)
     output:
         # apro=outdir+"/plots/{seed}_astral_pro.pdf",
         # model=outdir+"/plots/{seed}_trees.pdf",
         reco=outdir+"/plots/{seed}_discordance.pdf"
     conda: "../envs/sp_R.yaml"
     script: "../scripts/compare_sptree.R"
-
+# modify also the script
 
 # rule plot_trees:
 #     input: 
@@ -156,21 +159,21 @@ rule plot_trees:
 #     script: "../scripts/compare_trees.R"
 
 
-# rule get_runstats:
-#     input: seeds_unrooted_trees
-#     output:
-#         aln=outdir+"/stats/{seed}_aln.stats",
-#         time=outdir+"/stats/{seed}_runtime.stats"
-#     threads: 12
-#     conda: "../envs/sp_utils.yaml"
-#     shell:'''
-# basedir=$(dirname {input} | rev | cut -f2- -d'/' | rev | sort -u)
-# seqkit stats $basedir/*/*alg* -j {threads} -a -b -T | cut -f1,4,6,12 > {output.aln}
+rule get_runstats:
+    input: seeds_unrooted_trees
+    output:
+        aln=outdir+"/stats/{seed}_aln.stats",
+        time=outdir+"/stats/{seed}_runtime.stats"
+    threads: 12
+    conda: "../envs/sp_utils.yaml"
+    shell:'''
+basedir=$(dirname {input} | rev | cut -f2- -d'/' | rev | sort -u)
+seqkit stats $basedir/*/*{{alg,clean}} -j {threads} -a -b -T | cut -f1,4,6,12 > {output.aln}
 
-# datasetdir=$(echo $basedir | rev | cut -f3- -d'/' | rev)
-# echo -e "dirname\\tbasename\\ts\\th:m:s\\tmax_rss\\tmax_vms\\tmax_uss\\tmax_pss\\tio_in\\tio_out\\tmean_load\\tcpu_time" > {output.time}
-# find $datasetdir/benchmarks/ -type f -name "*txt" -printf "%h\\t%f\\t" -exec tail -1 {{}} \; >> {output.time}
-# '''
+datasetdir=$(echo $basedir | rev | cut -f3- -d'/' | rev)
+echo -e "dirname\\tbasename\\ts\\th:m:s\\tmax_rss\\tmax_vms\\tmax_uss\\tmax_pss\\tio_in\\tio_out\\tmean_load\\tcpu_time" > {output.time}
+find $datasetdir/benchmarks/ -type f -name "*txt" -printf "%h\\t%f\\t" -exec tail -1 {{}} \; >> {output.time}
+'''
 
 # rule plot_runstats:
 #     input: 

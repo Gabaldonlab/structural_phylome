@@ -3,3 +3,6 @@ dbs: ['eggnog', 'oma']
 target_seqs: 500
 min_seqs: 5
 evalue: 0.001
+
+
+sptree: "/gpfs/projects/bsc40/current/gmutti/projects/structural_phylome/data/sptrees/QFO.nwk"

@@ -1,6 +1,17 @@
+import random
+
+random.seed(76) # Mario Yepes Gang https://www.youtube.com/watch?v=hGrTSDMfzR4
+
 homodir=config['outdir']+'homology/'+config['homology_dataset']
 outdir=config['outdir']+'phylogeny/'+config['phylo_dataset']
 
+# this sucks but I cannot find a way to make it dynamically with the checkpoint
+
+# test_idxs = list(random.sample(range(722), config["n_test"]))
+cxx_combinations = ["aa_C"+str(el) for el in config["cxx"]]
+rev_combinations = config["combinations_rev"] + cxx_combinations # only in few genes and common set
+all_combinations = config["combinations"] + rev_combinations
+    
 seeds = pd.read_csv(config["test_seeds"], sep='\t', header=None)
 seeds = list(set(seeds[0].tolist()))
 
@@ -45,6 +56,11 @@ def seeds_treefiles(wildcards):
         seed_genes = [gn.strip() for gn in all_genes]
     outfiles = expand(outdir+"/seeds/{seed}/{i}/{i}_{mode}_{comb}.iqtree", 
                       seed=wildcards.seed, i=seed_genes, mode=config["modes"], comb=config["combinations_ML"])
+    # subset_seeds = [seed_genes[i] for i in test_idxs]
+    # add subset for further analysis LGP and FMG
+    # outfiles_rev = expand(outdir+"/seeds/{seed}/{i}/{i}_common_{comb}.iqtree", 
+    #                   seed=wildcards.seed, i=subset_seeds, comb=cxx_combinations)
+    # outfiles = outfiles + outfiles_rev
     return outfiles
 
 
@@ -74,6 +90,11 @@ def seeds_notung(wildcards):
     outfiles = expand(outdir+"/reco/notung/{seed}/{i}_{mode}_{comb}_rnm.nwk.rooting.0.parsable.txt", 
                       seed=wildcards.seed, i=seed_genes, mode=config["modes"], 
                       comb=config["combinations"])
+    # subset_seeds = [seed_genes[i] for i in test_idxs]
+    # add subset for further analysis LGP and FMG
+    outfiles_rev = expand(outdir+"/reco/notung/{seed}/{i}_common_{comb}_rnm.nwk.rooting.0.parsable.txt", 
+                      seed=wildcards.seed, i=seed_genes, comb=rev_combinations)
+    outfiles = outfiles + outfiles_rev
     return outfiles
 
 rule merge_Notung:
@@ -92,6 +113,11 @@ def common_trees(wildcards):
         seed_genes = [gn.strip() for gn in all_genes]
     outfiles = expand(outdir+"/seeds/{seed}/{i}/{i}_common_{comb}.nwk", 
                       seed=wildcards.seed, i=seed_genes, comb=config["combinations"])
+    # subset_seeds = [seed_genes[i] for i in test_idxs]
+    # add subset for further analysis LGP and FMG
+    outfiles_rev = expand(outdir+"/seeds/{seed}/{i}/{i}_common_{comb}.nwk", 
+                      seed=wildcards.seed, i=seed_genes, comb=rev_combinations)
+    outfiles = outfiles + outfiles_rev
     return outfiles
 
 def fs_trees(wildcards):
