@@ -75,6 +75,16 @@ Interestingly, given that each UniProt entry is potentially associated to other 
 snakemake --configfile config/example_phylome.yaml -s workflow/ortho_benchmark.smk -p -j2 -k --sdm conda
 ```
 
+## Homology benchmark
+
+You can benchmark the accuracy of blastp and foldseek in any uniprot taxon sampling you want. The accuracy is measured as the ability of both tools to recover the same grouping as different orthology databases (EggNOG, OMA, PhylomeDB, etc. as long as it's in uniprot metadata). You can see the `config/params_ortho_benchmark.yaml` file to see what parameters you can play with.
+
+To run the pipeline then you just do: 
+
+```
+snakemake -s workflow/ortho_benchmark.smk
+```
+
 ## Phylogeny pipeline
 
 ![Main snakemake pipeline](resources/dags/structpipe.png)

@@ -4,3 +4,5 @@ printshellcmds: true
 sdm: conda
 conda-prefix: "/gpfs/projects/bsc40/current/gmutti/software/conda/structural/"
 
+rerun-triggers: [code,input,mtime,params]
+# avoid software-env for the github branch problem

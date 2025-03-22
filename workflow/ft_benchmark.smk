@@ -17,7 +17,7 @@ def get_valid_subdirs(parent_dir):
 cwd = os.getcwd()  # This should be inside snakemake workflow but I can't find it
 
 folders = get_valid_subdirs(cwd)
-print(folders)
+# folders = ["HOG1153"]
 
 if len(folders) == 0:
     exit("No folder has trees")
@@ -25,7 +25,7 @@ if len(folders) == 0:
 # Load fixed config parameters
 configfile: workflow.basedir+'/../config/params_ortho_benchmark.yaml'
 
-mattypes = ['fident', 'alntmscore', 'lddt' ]
+mattypes = ['fident', 'alntmscore', 'lddt']
 metrics = ["apro", "disco", "notung"]
 
 rule all:
@@ -51,6 +51,7 @@ rule rename_iq:
         tree="{oma}/sequences.aln.muscle.fst.treefile",
         ids=rules.get_map.output.ids
     output: "reconciliation/trees/tmp/{oma}_iq.nwk"
+    conda: workflow.basedir+'/envs/bench.yaml'
     shell: """
 gotree rename -i {input.tree} -m {input.ids} -o {output}
 """
@@ -61,6 +62,7 @@ rule rename_ft:
         tree="{oma}/{mat}_1_exp_struct_tree.PP.nwk",
         ids=rules.get_map.output.ids
     output: "reconciliation/trees/tmp/{oma}_{mat}.nwk"
+    conda: workflow.basedir+'/envs/bench.yaml'
     shell: """
 gotree rename -i {input.tree} -m {input.ids} -o {output}
 """
@@ -77,7 +79,7 @@ rule concat:
     conda: workflow.basedir+'/envs/reco.yaml'
     shell: """
 cat {input.trees} > {output.ids} 
-nw_rename {input.trees} {input.sps} > {output.sps} 
+cat {input.trees} | nw_rename - {input.sps} > {output.sps} 
 """
 
 

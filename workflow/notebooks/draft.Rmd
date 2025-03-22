@@ -196,7 +196,7 @@ ortho_dbs <- read_delim(paste0(params$data_dir, "ids/", tax$Proteome_ID, "_ids.t
 ortho_dbs <- full_join(CATH_df, ortho_dbs)
 ```
 
-## Fig1
+## Fig 1
 
 ```{r fig1, eval=FALSE}
 fig1a <- df %>%
@@ -236,7 +236,7 @@ fig1 <- (fig1a | fig1b) + plot_layout(widths = c(1,2))
 ggsave("draft/figures/Fig1_tmp.pdf", fig1, width = 8, height = 4)
 ```
 
-## Fig2
+## Fig 2
 
 ```{r fig2, eval=FALSE}
 eval_p <- ggplot(df, aes(-log10(evalue_Blast), -log10(evalue_Foldseek))) + 
@@ -365,13 +365,12 @@ fig2_second_row <- ((lddt_p / alntmscore_p / plddt_p) | p_dbs) +
 fig2 <- (fig2_first_row / fig2_second_row) +
   plot_layout(heights = c(1,1.3)) +
   plot_annotation(tag_levels = 'A') &
-  theme(plot.tag = element_text(size = 10, face = "bold", family = "Aptos"))
+  theme(plot.tag = element_text(size = 10, face = "bold", family = "Helvetica"))
 
 ggsave("draft/figures/Fig2.pdf", fig2, width = 8, height = 7, device = cairo_pdf)
 ```
 
-## Fig3
-
+## Fig 3
 
 ```{r read_trees}
 models_draft <- setdiff(models, c("QT", "FTPY", "FMG", "C10", "C60"))
@@ -404,9 +403,12 @@ df_trees <- read_delim(unrooted_trees,
 # 722*8*4=23104 trees
 
 # ML trees with selected model and LL
-df_ml <- read_delim(paste0(params$outdir, 'phylogeny/',
+mltrees <- paste0(params$outdir, 'phylogeny/',
                               params_dataset$phylo_dataset,  "/trees/", 
-                              params_dataset$seed, "_mltrees.txt"),
+                              params_dataset$seed, "_mltrees.txt")
+mltrees <- "test/flashforward/out/mltrees.txt"
+
+df_ml <- read_delim(mltrees,
                     delim = "\t",
                     show_col_types=FALSE) %>%
   # mutate(fn=gsub("_mltrees.txt", "", basename(fn))) %>%
@@ -564,16 +566,23 @@ fig3 <- plot_rf + plot_apro + plot_DL +
 ggsave("draft/figures/Fig3.pdf", fig3, width = 9.5, height = 2.8, device = cairo_pdf)
 ```
 
+## Fig S1
+
+can be found here: "results/ortho_bench/eggnog/accuracy.pdf" and can be reproduced
+with any phylogenomics database annotated in uniprot following the instructions
+in the main README.md
+
+## Fig S2
 
 ```{r FigS2}
 # Compare trees with RF distance
-rf_df <- get_rf_df(df_trees)
+rf_df <- get_rf_df(filter(df_trees, model %in% models_draft))
 rf_text <- group_by(rf_df, model.x, model.y) %>% 
   # filter(as.integer(model.x)<=as.integer(model.y)) %>% 
   summarise(value=mean(RF, na.rm=T))
 
 plot_bs <- df_bs %>% 
-  filter(model!="FM") %>% 
+  filter(model %in% c("LG", "GTR", "3Di", "AF", "LLM")) %>% 
   mutate(targets=target,
          model=factor(model, levels=models)) %>% 
   ggplot(aes(model, support, fill=targets)) +
@@ -597,7 +606,7 @@ var_r2t <- reco %>%
 rf_plot <- rf_text %>% 
   ggplot(aes(model.x, model.y)) +
   geom_tile(aes(fill=value)) +
-  geom_text(aes(label=round(value, 2)), color="white") +
+  geom_text(aes(label=round(value, 2)), color="white", size=3) +
   scale_fill_distiller(palette="YlGnBu", direction = -1, limits = c(0,1), 
                        name="Mean RF") + 
   labs(x="Mean RF Distance", y="") +
@@ -605,6 +614,19 @@ rf_plot <- rf_text %>%
   theme(legend.position = "none", 
         axis.line = element_blank(),
         axis.ticks = element_blank())
+
+plot_struct_ml <- df_ml %>% 
+  filter(model %in% c("GTR", "3Di", "AF", "LLM")) %>% 
+  select(gene, targets, model, AIC, AICc, BIC) %>% 
+  pivot_longer(!c(gene, targets, model)) %>% 
+  group_by(gene, targets, name) %>% 
+  mutate(rank = dense_rank(value)) %>% 
+  filter(rank==1) %>% 
+  ggplot(aes(model)) + 
+  geom_bar(fill="grey40") + 
+  scale_y_continuous(expand = expansion(mult = c(0,.02))) +
+  facet_grid(~name) + 
+  labs(x="", y="N. first in metric")
 
 union_trees <- df_trees %>% 
   filter(target=="union", model %in% models_draft)
@@ -620,32 +642,34 @@ df_dist_summ <- df_dist %>%
   summarise(median_dist=median(nn_dist/max_dist), n=n())
 
 plot_dist <- df_dist_summ %>% 
-  ggplot(aes(median_dist, model,  fill=singleton)) + 
-  # ggdist::stat_halfeye(alpha=.8, point_colour = NA, .width = 0, height=.6, 
-  #                      position = position_nudge(y=.15)) +
+    mutate(model=factor(model, levels=models)) %>% 
+  ggplot(aes(model, median_dist,  fill=singleton)) + 
   geom_boxplot(
-    # width=.2,
-    # position = position_dodge(),
-    # removing outliers
     outlier.color = NA,
-    alpha = 1,
-    # position= position_nudge(y=-.5)
+    alpha = 1
   ) + 
-  labs(x="Normalised internode distance", y="Method", fill="") +
-  scale_x_continuous(expand = c(0,0.01), limits = c(0,1)) +
+  labs(y="Normalised internode distance", y="Method", fill="") +
+  scale_y_continuous(expand = c(0,0.01), limits = c(0,1)) +
   theme(panel.border = element_rect(fill = NA)) + 
   scale_fill_manual(values = palette_singleton_p) + 
   theme(legend.position = "bottom")
 
-fig_s2 <- ((plot_bs / rf_plot) + 
-             plot_layout(heights = c(2,1)) | 
-             (plot_dist / var_r2t) + 
-             plot_layout(heights = c(2,1))) +
-  plot_layout(widths = c(1, 2)) +
-  plot_annotation(tag_levels = 'A') & 
+first_row <- plot_bs + rf_plot + plot_struct_ml 
+second_row <- plot_dist + var_r2t 
+
+fig_s2 <- (first_row / second_row) +
+  plot_annotation(tag_levels = 'A') &
   theme(plot.tag = element_text(size = 10, face = "bold", family = "Helvetica"))
 
-ggsave("draft/figures/Fig_S2.pdf", fig_s2, width = 10, height = 6)
+# fig_s2 <- ((plot_bs / rf_plot) + 
+#              plot_layout(heights = c(2,1)) | 
+#              (plot_dist / var_r2t) + 
+#              plot_layout(heights = c(2,1))) +
+#   plot_layout(widths = c(1, 2)) +
+#   plot_annotation(tag_levels = 'A') & 
+#   theme(plot.tag = element_text(size = 10, face = "bold", family = "Helvetica"))
+
+ggsave("draft/figures/Fig_S2.pdf", fig_s2, width = 12, height = 8, device = cairo_pdf)
 
 df_dist_summ %>% 
   group_by(singleton, model) %>% 
@@ -653,7 +677,97 @@ df_dist_summ %>%
   filter(model=="LG")
 ```
 
-### Experimental vs predicted
+## Fig S3
+
+```{r, figS3}
+bench_dir <- "draft/foldtree_benchmark/zenodo/OMA_data/Eukaryota/reconciliation/"
+sptree_ft <- read.tree(paste0(bench_dir, "sptree.nwk"))
+
+ts_files_ft <- list.files(paste0(bench_dir, "trees/tmp"), pattern = "*nwk", full.names = T)
+ts_ft <- read.tree(text = sapply(ts_files_ft, readLines))
+names(ts_ft) <- gsub(".nwk", "", basename(ts_files_ft))
+
+n_tips_ft <- sapply(ts_ft, function(x) length(x$tip.label)) %>% 
+  enframe() %>%
+  separate(name, c("gene", "mat"), sep = "_") %>%
+  rename("n_tips"="value")
+
+
+TCS_ft <- read_delim(paste0(bench_dir,"TCS.txt"),
+           delim = "\t", col_names = c("gene", "mat", "TCS")) %>% 
+  mutate(mat = str_trim(mat))
+
+apro_files_ft <- list.files(bench_dir, pattern = "^apro", full.names = T)
+apro_trees_ft <- read.tree(text = sapply(apro_files_ft, readLines))
+names(apro_trees_ft) <- gsub(".txt", "", sapply(str_split(basename(apro_files_ft), "_"), 
+                            function(x) paste0(x[2])))
+trees_df_ft <- get_apro_stats(apro_trees_ft) 
+
+disco_files_ft <- list.files(bench_dir, pattern = "^disco", full.names = T)
+disco_rf_ft <- get_disco_rf(disco_files_ft, sptree_ft) %>% 
+  mutate(mat = gsub(".txt", "", targets)) %>% 
+  select(-targets, -alphabet, -model)
+
+notung_files_ft <- list.files(bench_dir, pattern = "^notung", full.names = T)[2:5]
+
+notung_ft <- read_delim(notung_files_ft, 
+                   show_col_types = FALSE, 
+                   col_names = c("gene", "dups", "losses"), 
+           id = "mat") %>% 
+  mutate(mat = gsub("notung_|.txt", "", basename(mat))) %>% 
+  left_join(n_tips_ft) %>% 
+  mutate(n_events = (dups+losses)/n_tips) 
+
+apro_plot_ft <- trees_df_ft %>%
+  mutate(targets = gsub("iq", "iqtree", targets)) %>% 
+  ggplot(aes(fct_rev(fct_reorder(targets, q1)), q1)) + 
+  geom_boxplot(outlier.size = .1) + 
+  labs(x="", y="Quartet support")
+
+disco_plot_ft <- disco_rf_ft %>%
+  mutate(mat = gsub("iq", "iqtree", mat)) %>%
+  ggplot(aes(fct_reorder(mat, rf), rf)) + 
+  geom_boxplot(outlier.size = .1) + 
+  labs(y="Norm. RF to species tree", x="") 
+
+notung_plot_ft <- notung_ft %>%
+  mutate(mat = gsub("iq", "iqtree", mat)) %>% 
+  ggplot(aes(fct_reorder(mat, n_events), n_events)) + 
+  geom_boxplot(outlier.size = .1) + 
+  labs(y="(D+L)/# Tips", x="") 
+
+
+TCS_plot <- TCS_ft %>% 
+  ggplot(aes(fct_rev(fct_reorder(mat, TCS)), TCS)) + 
+  geom_boxplot(outlier.size = .1) + 
+  scale_y_log10() + 
+  labs(x="")
+
+TCS_scatter <- TCS_ft %>% 
+  filter(mat %in% c("iqtree", "fident")) %>% 
+  pivot_wider(names_from = mat, values_from = TCS) %>% 
+  mutate(is_better = iqtree > fident) %>% 
+  add_count(is_better) %>% 
+  mutate(`IQ-Tree Better` = paste0(is_better, ' (', n, ')')) %>% 
+  # count(is_better)
+  ggplot(aes(iqtree, fident, color=`IQ-Tree Better`)) + 
+  geom_point() + 
+  geom_abline(slope = 1) + 
+  coord_fixed() + 
+  labs(x="TCS - IQ-Tree", y="TCS - Fident") +
+  scale_color_manual(values = c("blue", "red"))
+
+left_side <- ((apro_plot_ft | disco_plot_ft) / (notung_plot_ft | TCS_plot))
+fig_S3 <- (left_side | TCS_scatter) +
+  plot_layout(widths = c(1,1)) +
+  plot_annotation(tag_levels = 'A') &
+  theme(plot.tag = element_text(size = 10, face = "bold", family = "Helvetica"))
+
+ggsave("draft/figures/Fig_S3.pdf", fig_S3, width = 11, height = 5, device = cairo_pdf)
+```
+
+
+## Fig S4
 
 ```{r figs4}
 plot_PDB <- threed_df %>%
@@ -769,8 +883,8 @@ fig_CXX <- (RF_cxx + apro_CXX + DL_cxx + plot_mem_cxx + plot_time_cxx)
 fig_CXX <-  fig_CXX +
   plot_layout(guides = "collect", nrow = 1, 
               widths = c(5,5,5,3,3)) +
-  plot_annotation(tag_levels = "A") &
-  theme(legend.position = "none")
+  plot_annotation(tag_levels = 'A') &
+  theme(plot.tag = element_text(size = 10, face = "bold", family = "Helvetica"))
 
 ggsave("draft/figures/review_CXX.pdf", fig_CXX, width = 9.5, height = 2.8, device = cairo_pdf)
 ```
