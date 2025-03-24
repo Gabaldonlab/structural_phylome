@@ -47,5 +47,11 @@ t <- TreeTools::AddTip(t, getMRCA(t, tip = c("DROME", "BOMMO")), label = "TRICA"
 t <- TreeTools::AddTip(t, where = "TRIVA", label = "TRIV3")
 t <- TreeTools::AddTip(t, where = "SCHMA", label = "HELRO")
 t <- TreeTools::AddTip(t, where = "SORBI", label = "MAIZE")
+t <- TreeTools::AddTip(t, where = "USTMA", label = "MYCMD")
+
+# ggtree(t) + 
+#   geom_tiplab() + 
+#   scale_x_continuous(expand = expansion(add = c(0,7)))
+# ggsave("test/tmp.pdf", height = 15, width=9)
 write.tree(t, "data/sptrees/QFO.nwk")
 

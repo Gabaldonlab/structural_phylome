@@ -161,10 +161,24 @@ get_disco_rf <- function(disco_fls, sptree) {
   }
   disco_rf <- disco_rf %>% 
     mutate(bn = gsub("disco_", "", gsub(".nwk", "", bn))) %>% 
-    separate(bn, into = c("targets", "alphabet", "model"), sep = "_")
+    separate(bn, into = c("gene", "targets", "alphabet", "model"), sep = "_")
   return(disco_rf)  
 }
 
+get_disco_rf_ft <- function(disco_fls, sptree) {
+  disco_rf <- NULL
+  for (file in disco_fls){
+    a <- read.tree(file)
+    rf <- TreeDist::RobinsonFoulds(sptree, a, normalize = T)
+    nsps <- sapply(a, function(x) length(unique(x$tip.label)))
+    disco_rf <- bind_rows(disco_rf, 
+                          tibble(nsps=nsps, rf=rf, bn=rep(basename(file), length(rf))))
+  }
+  disco_rf <- disco_rf %>% 
+    mutate(bn = gsub("disco_", "", gsub(".nwk", "", bn))) %>% 
+    separate(bn, into = c("targets", "alphabet", "model"), sep = "_")
+  return(disco_rf)  
+}
 
 get_bs_df <- function(trees) {
   df <- sapply(trees, function(x) as.numeric(x$node.label)) %>% 
@@ -212,7 +226,7 @@ get_rf_df <- function(df) {
     filter(!is.na(tree.x), !is.na(tree.y)) %>%
     rowwise() %>%
     mutate(RF =  TreeDist::RobinsonFoulds(read.tree(text = tree.x),  
-                                          read.tree(text=tree.y),
+                                          read.tree(text = tree.y),
                                           normalize = T)) %>%
     select(-tree.x, -tree.y)
   return(rf_df)
