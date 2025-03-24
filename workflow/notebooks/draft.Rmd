@@ -378,20 +378,20 @@ models_draft <- setdiff(models, c("QT", "FTPY", "FMG", "C10", "C60"))
 unrooted_trees <- paste0(params$outdir, 'phylogeny/',
                               params_dataset$phylo_dataset,  "/trees/", 
                               params_dataset$seed, "_unrooted_trees.txt")
-unrooted_trees <- "test/flashforward/out/unrooted_trees.txt"
+# unrooted_trees <- "test/flashforward/out/unrooted_trees.txt"
 
 disco_folder <- paste0(params$outdir, 'phylogeny/',
                               params_dataset$phylo_dataset,  "/reco/disco")
-disco_folder <- "test/flashforward/reco/"
+# disco_folder <- "test/flashforward/reco/"
 
 notung <- paste0(params$outdir, 'phylogeny/',
                               params_dataset$phylo_dataset,  "/reco/", 
                               params_dataset$seed, "_notung.tsv")
-notung <- "test/flashforward/out/notung.txt"
+# notung <- "test/flashforward/out/notung.txt"
 
 apro_folder <- paste0(params$outdir, 'phylogeny/',
                               params_dataset$phylo_dataset,  "/reco/apro")
-apro_folder <- "test/flashforward/reco/"
+# apro_folder <- "test/flashforward/reco/"
 
 df_trees <- read_delim(unrooted_trees,
                        show_col_types = FALSE,
@@ -406,7 +406,7 @@ df_trees <- read_delim(unrooted_trees,
 mltrees <- paste0(params$outdir, 'phylogeny/',
                               params_dataset$phylo_dataset,  "/trees/", 
                               params_dataset$seed, "_mltrees.txt")
-mltrees <- "test/flashforward/out/mltrees.txt"
+# mltrees <- "test/flashforward/out/mltrees.txt"
 
 df_ml <- read_delim(mltrees,
                     delim = "\t",
@@ -420,8 +420,8 @@ df_ml <- read_delim(mltrees,
 
 disco_fls <- list.files(disco_folder, 
                         pattern = "*output*", full.names = T)
-disco_fls <- list.files(disco_folder, 
-                        pattern = "^disco", full.names = T)
+# disco_fls <- list.files(disco_folder, 
+#                         pattern = "^disco", full.names = T)
 
 # Read all trees
 ts <- read.tree(text = df_trees$tree)
@@ -456,8 +456,8 @@ reco <- read_delim(notung,
 
 apro_files <- list.files(apro_folder, 
                         pattern = "*support.nwk", full.names = TRUE)
-apro_files <- list.files(apro_folder, 
-                        pattern = "^apro", full.names = TRUE)
+# apro_files <- list.files(apro_folder, 
+#                         pattern = "^apro", full.names = TRUE)
 
 apro_trees <- read.tree(text = sapply(apro_files, readLines))
 names(apro_trees) <- sapply(str_split(basename(apro_files), "_"), 
@@ -465,7 +465,7 @@ names(apro_trees) <- sapply(str_split(basename(apro_files), "_"),
 
 trees_df <- get_apro_stats(apro_trees) 
 
-save.image(file = "workflow/notebooks/eda_cache/until_dftree.Rdata")
+# save.image(file = "workflow/notebooks/eda_cache/until_dftree.Rdata")
 ```
 
 
@@ -704,7 +704,7 @@ names(apro_trees_ft) <- gsub(".txt", "", sapply(str_split(basename(apro_files_ft
 trees_df_ft <- get_apro_stats(apro_trees_ft) 
 
 disco_files_ft <- list.files(bench_dir, pattern = "^disco", full.names = T)
-disco_rf_ft <- get_disco_rf(disco_files_ft, sptree_ft) %>% 
+disco_rf_ft <- get_disco_rf_ft(disco_files_ft, sptree_ft) %>% 
   mutate(mat = gsub(".txt", "", targets)) %>% 
   select(-targets, -alphabet, -model)
 
@@ -759,13 +759,12 @@ TCS_scatter <- TCS_ft %>%
 
 left_side <- ((apro_plot_ft | disco_plot_ft) / (notung_plot_ft | TCS_plot))
 fig_S3 <- (left_side | TCS_scatter) +
-  plot_layout(widths = c(1,1)) +
+  plot_layout(widths = c(1.2,1)) +
   plot_annotation(tag_levels = 'A') &
   theme(plot.tag = element_text(size = 10, face = "bold", family = "Helvetica"))
 
-ggsave("draft/figures/Fig_S3.pdf", fig_S3, width = 11, height = 5, device = cairo_pdf)
+ggsave("draft/figures/Fig_S3.pdf", fig_S3, width = 11.5, height = 5, device = cairo_pdf)
 ```
-
 
 ## Fig S4
 
