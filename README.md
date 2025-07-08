@@ -3,7 +3,7 @@
 
 This repo helps running different phylogenetic analyses, including workflows based on protein structures, given some seed sequences or predefined orthogroups. It may be useful to use and benchmark new structural phylogenetics method. It is designed to be easily expandable, so feel free to contribute with code or ideas for us to include!
 
-The results from the first run of the pipeline are reported in this preprint: [Newly developed structure-based methods do not outperform standard sequence-based methods for large-scale phylogenomics](https://www.biorxiv.org/content/10.1101/2024.08.02.606352v1)
+The results from the first run of the pipeline are reported in [Newly developed structure-based methods do not outperform standard sequence-based methods for large-scale phylogenomics](https://doi.org/10.1093/molbev/msaf149)
 
 # Installation
 
@@ -145,11 +145,6 @@ This modular pipeline was born with the idea to be easily expandable as so many 
 
 # TODOs
 
-* It would be cool to give a yaml with software parameters so that the pipeline is more customizable. For example: 
-```yaml
-	iqtree:
-		mset: LG,JTT
-		mrate: G,F
-```
-* add wsl wbtl and wsr would be cool
+* option to give a yaml with software parameters so that the pipeline is more customizable
+* adding wsl wbtl and wsr would be cool
 * add info on ortho_benchmark pipeline
